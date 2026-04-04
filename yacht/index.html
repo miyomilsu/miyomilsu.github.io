@@ -10,13 +10,13 @@
   <!-- 메뉴 -->
   <div id="menu-screen" class="screen">
     <h1>Yacht Dice</h1>
-    <p class="subtitle">vs AI</p>
+    <p class="subtitle">AI 대전</p>
     <div class="menu-buttons">
-      <button id="btn-standard" class="menu-btn standard">Standard<span class="mode-desc">12 categories</span></button>
-      <button id="btn-trickal" class="menu-btn trickal">Trickal<span class="mode-desc">8 categories + Erfin</span></button>
+      <button id="btn-standard" class="menu-btn standard">Standard<span class="mode-desc">12족보</span></button>
+      <button id="btn-trickal" class="menu-btn trickal">Trickal<span class="mode-desc">8족보 + 에르핀</span></button>
     </div>
     <div id="menu-records" class="records hidden"></div>
-    <button id="btn-history" class="history-link">Game History</button>
+    <button id="btn-history" class="history-link">전적 기록</button>
   </div>
 
   <!-- 로딩 -->
@@ -38,15 +38,15 @@
     <div id="dice-container" class="dice-container"></div>
 
     <div class="action-buttons">
-      <button id="btn-reroll" class="action-btn reroll-btn">Reroll Selected</button>
-      <button id="btn-assign" class="action-btn assign-btn">Assign</button>
+      <button id="btn-reroll" class="action-btn reroll-btn">선택 리롤</button>
+      <button id="btn-assign" class="action-btn assign-btn">족보 배정</button>
     </div>
 
     <div id="category-select" class="category-select hidden"></div>
 
     <table class="scoreboard">
       <thead>
-        <tr><th></th><th>You</th><th>AI</th></tr>
+        <tr><th></th><th>나</th><th>AI</th></tr>
       </thead>
       <tbody id="scoreboard-body"></tbody>
     </table>
@@ -60,21 +60,21 @@
 
     <table class="scoreboard">
       <thead>
-        <tr><th></th><th>You</th><th>AI</th></tr>
+        <tr><th></th><th>나</th><th>AI</th></tr>
       </thead>
       <tbody id="final-scoreboard-body"></tbody>
     </table>
 
     <div id="analysis" class="analysis"></div>
 
-    <button id="btn-new-game" class="menu-btn standard">New Game</button>
+    <button id="btn-new-game" class="menu-btn standard">새 게임</button>
   </div>
 
   <!-- 히스토리 -->
   <div id="history-screen" class="screen hidden">
     <div class="screen-header">
       <button id="btn-history-back" class="back-btn">&larr;</button>
-      <h2>Game History</h2>
+      <h2>전적 기록</h2>
     </div>
     <div id="history-list" class="history-list"></div>
   </div>
@@ -90,7 +90,7 @@
 
     <table class="scoreboard">
       <thead>
-        <tr><th></th><th>You</th><th>AI</th></tr>
+        <tr><th></th><th>나</th><th>AI</th></tr>
       </thead>
       <tbody id="detail-scoreboard-body"></tbody>
     </table>
@@ -107,8 +107,8 @@
       <span id="ra-score-summary" class="ra-score-summary"></span>
     </div>
     <div class="ra-nav">
-      <button id="ra-prev" class="ra-nav-btn">&larr; Prev</button>
-      <button id="ra-next" class="ra-nav-btn">Next &rarr;</button>
+      <button id="ra-prev" class="ra-nav-btn">&larr; 이전</button>
+      <button id="ra-next" class="ra-nav-btn">다음 &rarr;</button>
     </div>
     <div id="ra-panels" class="ra-panels"></div>
   </div>

@@ -159,12 +159,12 @@ function renderAILog() {
       const sp = e.special != null ? spSpan(e.special) : '';
       const kept = e.kept.length ? e.kept.map(d => dieSpan(d, 'ai-kept')).join('') : '';
       const keptSp = e.keepSpecial ? sp : '';
-      parts.push(`${from}${sp} keep ${kept}${keptSp || (kept ? '' : 'none')}`);
+      parts.push(`${from}${sp} 킵 ${kept}${keptSp || (kept ? '' : '없음')}`);
     } else {
       const d = e.dice.map(d => dieSpan(d, 'ai-kept')).join('');
       const sp = e.special != null ? spSpan(e.special) : '';
       if (!parts.length) parts.push(`${d}${sp}`);
-      parts.push(`\u2192 <strong>${catNames[e.cat]}</strong> ${e.score}pts`);
+      parts.push(`\u2192 <strong>${catNames[e.cat]}</strong> ${e.score}점`);
     }
   }
   el.innerHTML = '\uD83E\uDD16 ' + parts.join(' ');
@@ -220,7 +220,7 @@ function renderScoreboard() {
   const aUS = game.aScores.slice(0, m.upperCount).reduce((a, s) => a + (s >= 0 ? s : 0), 0);
   const pB = game.pUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${pUS}/${m.upperThreshold}`;
   const aB = game.aUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${aUS}/${m.upperThreshold}`;
-  addScoreRow(tbody, 'Bonus', pB, aB, true);
+  addScoreRow(tbody, '보너스', pB, aB, true);
 
   // 하체
   for (let c = m.upperCount; c < m.numCat; c++) {
@@ -229,7 +229,7 @@ function renderScoreboard() {
 
   // 총점
   const { pT, aT } = Game.calcTotal(game);
-  addScoreRow(tbody, 'Total', pT, aT, true);
+  addScoreRow(tbody, '합계', pT, aT, true);
 }
 
 function addScoreRow(tbody, name, pVal, aVal, isSpecial = false) {
@@ -315,13 +315,14 @@ function showGameOver() {
 
   showScreen('over');
 
-  const result = pT > aT ? 'WIN' : pT < aT ? 'LOSE' : 'DRAW';
+  const result = pT > aT ? '승리' : pT < aT ? '패배' : '무승부';
+  const resultCls = pT > aT ? 'win' : pT < aT ? 'lose' : 'draw';
   const resultEmoji = pT > aT ? '\uD83C\uDF89' : pT < aT ? '\uD83D\uDE22' : '\uD83E\uDD1D';
 
   $('result-title').textContent = `${resultEmoji} ${result}`;
-  $('result-title').className = 'result-' + result.toLowerCase();
+  $('result-title').className = 'result-' + resultCls;
   $('result-score').textContent = `${pT} vs ${aT}`;
-  $('result-record').textContent = `${record.wins}W ${record.losses}L ${record.draws}D | Best: ${record.highScore}`;
+  $('result-record').textContent = `${record.wins}승 ${record.losses}패 ${record.draws}무 | 최고: ${record.highScore}`;
 
   // 최종 스코어보드
   renderFinalScoreboard();
@@ -343,12 +344,12 @@ function renderFinalScoreboard() {
   const aUS = game.aScores.slice(0, m.upperCount).reduce((a, s) => a + (s >= 0 ? s : 0), 0);
   const pB = game.pUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${pUS}/${m.upperThreshold}`;
   const aB = game.aUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${aUS}/${m.upperThreshold}`;
-  addScoreRow(tbody, 'Bonus', pB, aB, true);
+  addScoreRow(tbody, '보너스', pB, aB, true);
   for (let c = m.upperCount; c < m.numCat; c++) {
     addScoreRow(tbody, catNames[c], game.pScores[c], game.aScores[c]);
   }
   const { pT, aT } = Game.calcTotal(game);
-  addScoreRow(tbody, 'Total', pT, aT, true);
+  addScoreRow(tbody, '합계', pT, aT, true);
 }
 
 function renderAnalysis() {
@@ -357,10 +358,10 @@ function renderAnalysis() {
   const m = Game.MODE[game.mode];
   const catNames = m.scoring.CATEGORY_NAMES;
 
-  let html = `<div class="play-score">Play Score: <strong>${playScore}/100</strong> (EV Loss: ${evLoss})</div>`;
+  let html = `<div class="play-score">플레이 점수: <strong>${playScore}/100</strong> (EV 손실: ${evLoss})</div>`;
 
   if (mistakes.length === 0) {
-    html += '<div class="perfect">Perfect play!</div>';
+    html += '<div class="perfect">완벽한 플레이!</div>';
   } else {
     html += '<div class="mistakes">';
     const shown = mistakes.slice(0, 8);
@@ -370,11 +371,11 @@ function renderAnalysis() {
       const playerStr = fmtAction(h.player, h.playerScore, catNames, h.dice, h.special, m);
       const optStr = fmtAction(h.optimal, h.optimalScore, catNames, h.dice, h.special, m);
       html += `<div class="mistake">`;
-      html += `<div class="mistake-header">R${h.round} ${dice}${sp} reroll${h.rerolls} \u2014 <strong>#${h.rank}/${h.totalActions}</strong> (EV <strong>-${h.evDiff.toFixed(1)}</strong>)</div>`;
-      html += `<div class="mistake-detail">${playerStr} \u2192 optimal: ${optStr}</div>`;
+      html += `<div class="mistake-header">R${h.round} ${dice}${sp} 리롤${h.rerolls} \u2014 <strong>#${h.rank}/${h.totalActions}</strong> (EV <strong>-${h.evDiff.toFixed(1)}</strong>)</div>`;
+      html += `<div class="mistake-detail">${playerStr} \u2192 최적: ${optStr}</div>`;
       html += `</div>`;
     }
-    if (mistakes.length > 8) html += `<div class="more">...and ${mistakes.length - 8} more</div>`;
+    if (mistakes.length > 8) html += `<div class="more">...외 ${mistakes.length - 8}개</div>`;
     html += '</div>';
   }
 
@@ -383,17 +384,17 @@ function renderAnalysis() {
 
 function fmtAction(action, score, catNames, dice, special, m) {
   if (action.type === 'assign') {
-    return `${catNames[action.category]} ${score != null ? score + 'pts' : ''}`;
+    return `${catNames[action.category]} ${score != null ? score + '점' : ''}`;
   }
   if (m.hasSpecial) {
     const nk = [];
     for (let i = 0; i < 4; i++) if (action.normalKeepMask & (1 << i)) nk.push(dice[i]);
     const kept = nk.map(d => DICE_DOTS[d]).join('') || '';
     const sp = action.keepSpecial ? (special === 0 ? 'W' : DICE_DOTS[special]) : '';
-    return `keep ${kept}${sp || (kept ? '' : 'none')} reroll`;
+    return `킵 ${kept}${sp || (kept ? '' : '없음')} 리롤`;
   }
-  const kept = action.keptValues.length ? action.keptValues.map(d => DICE_DOTS[d]).join('') : 'none';
-  return `keep ${kept} reroll`;
+  const kept = action.keptValues.length ? action.keptValues.map(d => DICE_DOTS[d]).join('') : '없음';
+  return `킵 ${kept} 리롤`;
 }
 
 function backToMenu() {
@@ -407,7 +408,7 @@ function updateRecords() {
   const r = Game.getRecords();
   const el = $('menu-records');
   if (r.gamesPlayed > 0) {
-    el.textContent = `${r.wins}W ${r.losses}L ${r.draws}D | Best: ${r.highScore}`;
+    el.textContent = `${r.wins}승 ${r.losses}패 ${r.draws}무 | 최고: ${r.highScore}`;
     el.classList.remove('hidden');
   } else {
     el.classList.add('hidden');
@@ -423,15 +424,15 @@ function showHistory() {
   container.innerHTML = '';
 
   if (list.length === 0) {
-    container.innerHTML = '<div class="history-empty">No games played yet.</div>';
+    container.innerHTML = '<div class="history-empty">플레이 기록이 없습니다.</div>';
     return;
   }
 
   for (const g of list) {
     const item = document.createElement('div');
     item.className = 'history-item';
-    const result = g.playerTotal > g.aiTotal ? 'W' : g.playerTotal < g.aiTotal ? 'L' : 'D';
-    const resultClass = result === 'W' ? 'win' : result === 'L' ? 'lose' : 'draw';
+    const result = g.playerTotal > g.aiTotal ? '승' : g.playerTotal < g.aiTotal ? '패' : '무';
+    const resultClass = result === '승' ? 'win' : result === '패' ? 'lose' : 'draw';
     const mode = g.mode === 'trickal' ? 'TK' : 'STD';
     const date = new Date(g.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     const ps = g.playScore != null ? `${g.playScore}/100` : '-';
@@ -467,9 +468,10 @@ function showDetail(gameId) {
   const catNames = m.scoring.CATEGORY_NAMES;
 
   // 헤더
-  const result = record.playerTotal > record.aiTotal ? 'WIN' : record.playerTotal < record.aiTotal ? 'LOSE' : 'DRAW';
+  const result = record.playerTotal > record.aiTotal ? '승리' : record.playerTotal < record.aiTotal ? '패배' : '무승부';
+  const detailCls = record.playerTotal > record.aiTotal ? 'win' : record.playerTotal < record.aiTotal ? 'lose' : 'draw';
   $('detail-title').textContent = `${record.mode === 'trickal' ? 'Trickal' : 'Standard'} - ${result}`;
-  $('detail-title').className = 'result-' + result.toLowerCase();
+  $('detail-title').className = 'result-' + detailCls;
   $('detail-scores').textContent = `${record.playerTotal} vs ${record.aiTotal}`;
   $('detail-date').textContent = new Date(record.date).toLocaleString('ko-KR');
 
@@ -483,16 +485,16 @@ function showDetail(gameId) {
   const aUS = record.aiScores.slice(0, m.upperCount).reduce((a, s) => a + (s >= 0 ? s : 0), 0);
   const pB = record.playerUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${pUS}/${m.upperThreshold}`;
   const aB = record.aiUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${aUS}/${m.upperThreshold}`;
-  addScoreRow(tbody, 'Bonus', pB, aB, true);
+  addScoreRow(tbody, '보너스', pB, aB, true);
   for (let c = m.upperCount; c < m.numCat; c++) {
     addScoreRow(tbody, catNames[c], record.playerScores[c], record.aiScores[c]);
   }
-  addScoreRow(tbody, 'Total', record.playerTotal, record.aiTotal, true);
+  addScoreRow(tbody, '합계', record.playerTotal, record.aiTotal, true);
 
   // 분석 요약
   const analysisEl = $('detail-analysis');
   if (record.playScore != null) {
-    let html = `<div class="play-score">Play Score: <strong>${record.playScore}/100</strong> (EV Loss: ${record.evLoss.toFixed(1)})</div>`;
+    let html = `<div class="play-score">플레이 점수: <strong>${record.playScore}/100</strong> (EV 손실: ${record.evLoss.toFixed(1)})</div>`;
     if (record.mistakes && record.mistakes.length > 0) {
       html += '<div class="mistakes">';
       for (const h of record.mistakes.slice(0, 5)) {
@@ -500,12 +502,12 @@ function showDetail(gameId) {
         const sp = h.special != null ? (h.special === 0 ? ' +W' : ' +' + DICE_DOTS[h.special]) : '';
         const playerStr = fmtAction(h.player, h.playerScore, catNames, h.dice, h.special, m);
         const optStr = fmtAction(h.optimal, h.optimalScore, catNames, h.dice, h.special, m);
-        html += `<div class="mistake"><div class="mistake-header">R${h.round} ${dice}${sp} reroll${h.rerolls} \u2014 <strong>#${h.rank}/${h.totalActions}</strong> (EV <strong>-${h.evDiff.toFixed(1)}</strong>)</div><div class="mistake-detail">${playerStr} \u2192 optimal: ${optStr}</div></div>`;
+        html += `<div class="mistake"><div class="mistake-header">R${h.round} ${dice}${sp} 리롤${h.rerolls} \u2014 <strong>#${h.rank}/${h.totalActions}</strong> (EV <strong>-${h.evDiff.toFixed(1)}</strong>)</div><div class="mistake-detail">${playerStr} \u2192 최적: ${optStr}</div></div>`;
       }
-      if (record.mistakes.length > 5) html += `<div class="more">...and ${record.mistakes.length - 5} more</div>`;
+      if (record.mistakes.length > 5) html += `<div class="more">...외 ${record.mistakes.length - 5}개</div>`;
       html += '</div>';
     } else {
-      html += '<div class="perfect">Perfect play!</div>';
+      html += '<div class="perfect">완벽한 플레이!</div>';
     }
     analysisEl.innerHTML = html;
   } else {
@@ -515,10 +517,10 @@ function showDetail(gameId) {
   // 라운드 분석 버튼
   const roundsEl = $('detail-rounds');
   if (record.moves && record.moves.length > 0) {
-    roundsEl.innerHTML = `<button id="btn-round-analysis" class="menu-btn standard" style="margin-top:12px;width:100%">Round Analysis</button>`;
+    roundsEl.innerHTML = `<button id="btn-round-analysis" class="menu-btn standard" style="margin-top:12px;width:100%">라운드 분석</button>`;
     $('btn-round-analysis').addEventListener('click', () => openRoundAnalysis(record));
   } else {
-    roundsEl.innerHTML = '<div class="play-score">Round data not available for this game.</div>';
+    roundsEl.innerHTML = '<div class="play-score">라운드 데이터가 없습니다.</div>';
   }
 }
 
@@ -526,7 +528,7 @@ function showDetail(gameId) {
 
 async function openRoundAnalysis(record) {
   showScreen('loading');
-  $('loading-text').textContent = 'Loading strategy engine...';
+  $('loading-text').textContent = '전략 엔진 로딩 중...';
   await Game.MODE[record.mode].strategy.load();
   currentRoundNum = 1;
   showScreen('round-analysis');
@@ -542,7 +544,7 @@ function renderRoundAnalysis(record, roundNum) {
   const maxRound = m.rounds;
 
   // 헤더
-  $('ra-title').textContent = `Round ${roundNum} / ${maxRound}`;
+  $('ra-title').textContent = `라운드 ${roundNum} / ${maxRound}`;
   $('ra-score-summary').textContent = `${record.playerTotal} vs ${record.aiTotal}`;
 
   // 네비게이션
@@ -555,7 +557,7 @@ function renderRoundAnalysis(record, roundNum) {
   container.innerHTML = '';
 
   if (!rd) {
-    container.innerHTML = '<div class="ra-empty">No data for this round.</div>';
+    container.innerHTML = '<div class="ra-empty">이 라운드의 데이터가 없습니다.</div>';
     return;
   }
 
@@ -603,11 +605,11 @@ function renderRoundAnalysis(record, roundNum) {
     const spHtml = m.hasSpecial && pt.specialDie != null
       ? `<span class="ra-die ra-sp">${pt.specialDie === 0 ? 'W' : DICE_DOTS[pt.specialDie]}</span>` : '';
 
-    let html = `<div class="ra-panel-header">Reroll ${r}</div>`;
+    let html = `<div class="ra-panel-header">리롤 ${r}</div>`;
     html += `<div class="ra-dice">${diceHtml}${spHtml}</div>`;
 
     // 전체 행동 리스트
-    html += `<div class="ra-top-header">All actions (${allActions.length}) <span class="ra-help" title="Placeholder">?</span></div>`;
+    html += `<div class="ra-top-header">전체 선택지 (${allActions.length}) <span class="ra-help" title="Placeholder">?</span></div>`;
     html += `<div class="ra-actions">`;
 
     for (let i = 0; i < allActions.length; i++) {
@@ -618,7 +620,7 @@ function renderRoundAnalysis(record, roundNum) {
       const desc = formatActionDesc(act, catNames, pt, m);
       const evStr = act.ev.toFixed(1);
       const diffStr = i === 0 ? '' : `<span class="ra-ev-diff">-${evDiff.toFixed(1)}</span>`;
-      const playerMark = isPlayerChoice ? '<span class="ra-you">YOU</span>' : '';
+      const playerMark = isPlayerChoice ? '<span class="ra-you">나</span>' : '';
 
       html += `<div class="${cls}">`;
       html += `<span class="ra-rank">#${i + 1}</span>`;
@@ -639,7 +641,7 @@ function renderRoundAnalysis(record, roundNum) {
 
     // 이 시점에서 배정 안 했으면 (아직 도달 안 함) 표시
     if (!playerAction) {
-      html += `<div class="ra-no-action">Not reached</div>`;
+      html += `<div class="ra-no-action">미도달</div>`;
     }
 
     panel.innerHTML = html;
@@ -649,12 +651,12 @@ function renderRoundAnalysis(record, roundNum) {
   // 최종 배정 + AI 요약
   let footerHtml = '';
   if (rd.assign) {
-    footerHtml += `<div class="ra-assign-result">Assigned: <strong>${catNames[rd.assign.category]}</strong> ${rd.assign.score}pts</div>`;
+    footerHtml += `<div class="ra-assign-result">배정: <strong>${catNames[rd.assign.category]}</strong> ${rd.assign.score}점</div>`;
   }
   if (rd.ai && rd.ai.log.length) {
     const aiAssign = rd.ai.log.find(e => e.type === 'assign');
     if (aiAssign) {
-      footerHtml += `<div class="ra-ai-result">AI: <strong>${catNames[aiAssign.cat]}</strong> ${aiAssign.score}pts</div>`;
+      footerHtml += `<div class="ra-ai-result">AI: <strong>${catNames[aiAssign.cat]}</strong> ${aiAssign.score}점</div>`;
     }
   }
   if (footerHtml) {
@@ -681,17 +683,17 @@ function renderTargetDist(dist, scoreAccum, catNames) {
   scoreEntries.sort((a, b) => b.val - a.val);
 
   let html = '<div class="ra-target">';
-  html += '<div class="ra-target-header">Target (optimal play)</div>';
+  html += '<div class="ra-target-header">목표 분포 (최적 플레이)</div>';
 
   // 확률 top5
-  html += '<div class="ra-target-row"><span class="ra-target-label">By prob</span><span class="ra-target-items">';
+  html += '<div class="ra-target-row"><span class="ra-target-label">확률순</span><span class="ra-target-items">';
   for (const e of probEntries.slice(0, 5)) {
     html += `<span class="ra-target-item">${e.name} <strong>${(e.val * 100).toFixed(0)}%</strong></span>`;
   }
   html += '</span></div>';
 
   // 점수 top5
-  html += '<div class="ra-target-row"><span class="ra-target-label">By score</span><span class="ra-target-items">';
+  html += '<div class="ra-target-row"><span class="ra-target-label">점수순</span><span class="ra-target-items">';
   for (const e of scoreEntries.slice(0, 5)) {
     html += `<span class="ra-target-item">${e.name} <strong>${e.val.toFixed(1)}</strong></span>`;
   }
@@ -705,18 +707,18 @@ function renderTargetDist(dist, scoreAccum, catNames) {
 
 function formatActionDesc(act, catNames, pt, m) {
   if (act.type === 'assign') {
-    return `<span class="ra-cat">${catNames[act.category]}</span> <span class="ra-pts">${act.score}pts</span>`;
+    return `<span class="ra-cat">${catNames[act.category]}</span> <span class="ra-pts">${act.score}점</span>`;
   }
   // 리롤: 킵한 주사위 표시
   const sorted = pt.dice.slice().sort((a, b) => a - b);
   if (m.hasSpecial) {
     const kept = act.keptNormal.map(i => `<span class="ra-die-sm">${DICE_DOTS[sorted[i]]}</span>`).join('');
     const sp = act.keepSpecial ? `<span class="ra-die-sm ra-sp">${pt.specialDie === 0 ? 'W' : DICE_DOTS[pt.specialDie]}</span>` : '';
-    const keptStr = kept || sp ? `${kept}${sp}` : 'none';
-    return `keep ${keptStr}`;
+    const keptStr = kept || sp ? `${kept}${sp}` : '없음';
+    return `킵 ${keptStr}`;
   }
   const kept = act.keptIndices.map(i => `<span class="ra-die-sm">${DICE_DOTS[sorted[i]]}</span>`).join('');
-  return `keep ${kept || 'none'}`;
+  return `킵 ${kept || '없음'}`;
 }
 
 function isActionMatch(act, playerAction, pt, m) {
