@@ -128,6 +128,17 @@ function toggleDie(index) {
   renderDice();
 }
 
+function dieSpan(val, cls) {
+  return `<span class="ai-die${cls ? ' ' + cls : ''}">${DICE_DOTS[val]}</span>`;
+}
+
+function spSpan(special) {
+  if (special == null) return '';
+  return special === 0
+    ? '<span class="ai-die ai-sp">W</span>'
+    : `<span class="ai-die ai-sp">${DICE_DOTS[special]}</span>`;
+}
+
 function renderAILog() {
   const el = $('ai-log');
   if (!game.aiLog || !game.aiLog.length) {
@@ -141,19 +152,19 @@ function renderAILog() {
 
   for (const e of game.aiLog) {
     if (e.type === 'reroll') {
-      const from = e.from.map(d => DICE_DOTS[d]).join('');
-      const sp = e.special != null ? (e.special === 0 ? 'W' : DICE_DOTS[e.special]) : '';
-      const kept = e.kept.length ? e.kept.map(d => DICE_DOTS[d]).join('') : '';
+      const from = e.from.map(d => dieSpan(d, 'ai-dim')).join('');
+      const sp = e.special != null ? spSpan(e.special) : '';
+      const kept = e.kept.length ? e.kept.map(d => dieSpan(d, 'ai-kept')).join('') : '';
       const keptSp = e.keepSpecial ? sp : '';
-      parts.push(`${from}${sp ? ' +' + sp : ''} keep ${kept}${keptSp || (kept ? '' : 'none')}`);
+      parts.push(`${from}${sp} keep ${kept}${keptSp || (kept ? '' : 'none')}`);
     } else {
-      const d = e.dice.map(d => DICE_DOTS[d]).join('');
-      const sp = e.special != null ? (e.special === 0 ? ' +W' : ' +' + DICE_DOTS[e.special]) : '';
+      const d = e.dice.map(d => dieSpan(d, 'ai-kept')).join('');
+      const sp = e.special != null ? spSpan(e.special) : '';
       if (!parts.length) parts.push(`${d}${sp}`);
-      parts.push(`\u2192 ${catNames[e.cat]} ${e.score}pts`);
+      parts.push(`\u2192 <strong>${catNames[e.cat]}</strong> ${e.score}pts`);
     }
   }
-  el.textContent = '\uD83E\uDD16 ' + parts.join(' ');
+  el.innerHTML = '\uD83E\uDD16 ' + parts.join(' ');
 }
 
 function renderCategorySelect() {

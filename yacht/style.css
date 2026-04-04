@@ -137,10 +137,21 @@ body {
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 16px;
-  font-size: 0.85em;
+  font-size: 0.95em;
   color: var(--text-dim);
-  line-height: 1.5;
+  line-height: 1.8;
 }
+
+.ai-die {
+  display: inline-block;
+  font-size: 1.3em;
+  vertical-align: middle;
+  margin: 0 1px;
+}
+
+.ai-die.ai-kept { color: var(--text); }
+.ai-die.ai-dim { color: var(--text-dim); opacity: 0.5; }
+.ai-die.ai-sp { color: var(--green); }
 
 /* ── 주사위 ── */
 
@@ -183,9 +194,10 @@ body {
 }
 
 .die.special.selected {
-  border-color: var(--green);
-  background: rgba(46, 204, 113, 0.15);
-  box-shadow: 0 0 12px rgba(46, 204, 113, 0.3);
+  border-color: var(--accent);
+  background: rgba(233, 69, 96, 0.15);
+  box-shadow: 0 0 12px rgba(233, 69, 96, 0.3);
+  color: var(--accent);
 }
 
 .die.locked { cursor: default; opacity: 0.8; }
