@@ -351,6 +351,160 @@ body {
 .mistake-detail { color: var(--text-dim); }
 .more { text-align: center; color: var(--text-dim); font-size: 0.85em; }
 
+/* ── 히스토리 링크 ── */
+
+.history-link {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.history-link:hover { color: var(--text); }
+
+/* ── 공통 화면 헤더 ── */
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--surface2);
+}
+
+.screen-header h2 { font-size: 1.3em; }
+
+.back-btn {
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 1.1em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.back-btn:hover { background: var(--surface2); }
+
+/* ── 히스토리 리스트 ── */
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 40px 0;
+}
+
+.history-item {
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.history-item:hover { border-color: var(--blue); }
+
+.history-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.history-result {
+  font-weight: 700;
+  font-size: 1.1em;
+  width: 24px;
+  text-align: center;
+}
+
+.history-result.result-win { color: var(--green); }
+.history-result.result-lose { color: var(--red); }
+.history-result.result-draw { color: var(--gold); }
+
+.history-mode {
+  background: var(--surface2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+.history-scores { font-weight: 600; }
+
+.history-play-score {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 0.85em;
+}
+
+.history-sub {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+  font-size: 0.8em;
+}
+
+/* ── 상세 보기 ── */
+
+#detail-screen {
+  padding-top: 12px;
+}
+
+.detail-date {
+  color: var(--text-dim);
+  font-size: 0.85em;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+#detail-screen .result-score {
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+#detail-screen .scoreboard { margin-bottom: 16px; }
+
+/* ── 라운드별 리플레이 ── */
+
+.rounds-title {
+  font-size: 1.1em;
+  margin: 16px 0 8px;
+}
+
+.round-card {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  font-size: 0.85em;
+  line-height: 1.6;
+}
+
+.round-header {
+  font-weight: 700;
+  margin-bottom: 2px;
+  color: var(--blue);
+}
+
+.round-roll { font-size: 1.2em; }
+.round-reroll { color: var(--text-dim); }
+.round-assign { color: var(--gold); }
+.round-ai { color: var(--text-dim); font-size: 0.9em; margin-top: 4px; }
+
 /* ── 반응형 ── */
 
 @media (max-width: 400px) {

@@ -8,7 +8,7 @@ const DICE_DOTS = ['', '\u2680', '\u2681', '\u2682', '\u2683', '\u2684', '\u2685
 const DICE_EMOJI = ['', '1', '2', '3', '4', '5', '6'];
 
 let game = null;
-let phase = 'menu'; // menu | loading | rolling | assigning | gameover
+let phase = 'menu'; // menu | loading | rolling | assigning | gameover | history | detail
 let selectedDice = new Set();
 
 // ── DOM refs ──
@@ -18,15 +18,20 @@ const menuScreen = $('menu-screen');
 const gameScreen = $('game-screen');
 const overScreen = $('over-screen');
 const loadingScreen = $('loading-screen');
+const historyScreen = $('history-screen');
+const detailScreen = $('detail-screen');
 
 // ── 초기화 ──
 
 export async function init() {
   $('btn-standard').addEventListener('click', () => startGame('standard'));
   $('btn-trickal').addEventListener('click', () => startGame('trickal'));
+  $('btn-history').addEventListener('click', showHistory);
   $('btn-reroll').addEventListener('click', doReroll);
   $('btn-assign').addEventListener('click', showAssignUI);
   $('btn-new-game').addEventListener('click', backToMenu);
+  $('btn-history-back').addEventListener('click', backToMenu);
+  $('btn-detail-back').addEventListener('click', showHistory);
   updateRecords();
 }
 
@@ -35,6 +40,8 @@ function showScreen(name) {
   gameScreen.classList.toggle('hidden', name !== 'game');
   overScreen.classList.toggle('hidden', name !== 'over');
   loadingScreen.classList.toggle('hidden', name !== 'loading');
+  historyScreen.classList.toggle('hidden', name !== 'history');
+  detailScreen.classList.toggle('hidden', name !== 'detail');
 }
 
 // ── 게임 시작 ──
@@ -257,6 +264,7 @@ function doReroll() {
   }
 
   game.rerolls--;
+  Game.logReroll(game, [...selectedDice]);
   selectedDice.clear();
   renderGame();
 }
@@ -269,8 +277,10 @@ function showAssignUI() {
 
 function doAssign(cat) {
   Game.recordDecision(game, { type: 'assign', category: cat });
-  Game.assignPlayer(game, cat);
+  const score = Game.assignPlayer(game, cat);
+  Game.logAssign(game, cat, score);
   Game.playAI(game);
+  Game.logAI(game);
   Game.nextRound(game);
 
   if (Game.isGameOver(game)) {
@@ -387,6 +397,162 @@ function updateRecords() {
     el.classList.remove('hidden');
   } else {
     el.classList.add('hidden');
+  }
+}
+
+// ── 히스토리 ──
+
+function showHistory() {
+  showScreen('history');
+  const list = Game.getGameHistoryList();
+  const container = $('history-list');
+  container.innerHTML = '';
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="history-empty">No games played yet.</div>';
+    return;
+  }
+
+  for (const g of list) {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    const result = g.playerTotal > g.aiTotal ? 'W' : g.playerTotal < g.aiTotal ? 'L' : 'D';
+    const resultClass = result === 'W' ? 'win' : result === 'L' ? 'lose' : 'draw';
+    const mode = g.mode === 'trickal' ? 'TK' : 'STD';
+    const date = new Date(g.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const ps = g.playScore != null ? `${g.playScore}/100` : '-';
+
+    item.innerHTML = `
+      <div class="history-main">
+        <span class="history-result result-${resultClass}">${result}</span>
+        <span class="history-mode">${mode}</span>
+        <span class="history-scores">${g.playerTotal} vs ${g.aiTotal}</span>
+        <span class="history-play-score">PS ${ps}</span>
+      </div>
+      <div class="history-sub">
+        <span class="history-date">${date}</span>
+        <span class="history-id">${g.id}</span>
+      </div>`;
+    item.addEventListener('click', () => showDetail(g.id));
+    container.appendChild(item);
+  }
+}
+
+// ── 상세 보기 ──
+
+function showDetail(gameId) {
+  const record = Game.getGameRecord(gameId);
+  if (!record) return;
+
+  showScreen('detail');
+  const m = Game.MODE[record.mode];
+  const catNames = m.scoring.CATEGORY_NAMES;
+
+  // 헤더
+  const result = record.playerTotal > record.aiTotal ? 'WIN' : record.playerTotal < record.aiTotal ? 'LOSE' : 'DRAW';
+  const resultClass = result.toLowerCase();
+  $('detail-title').textContent = `${record.mode === 'trickal' ? 'Trickal' : 'Standard'} - ${result}`;
+  $('detail-title').className = 'result-' + resultClass;
+  $('detail-scores').textContent = `${record.playerTotal} vs ${record.aiTotal}`;
+  $('detail-date').textContent = new Date(record.date).toLocaleString('ko-KR');
+
+  // 스코어보드
+  const tbody = $('detail-scoreboard-body');
+  tbody.innerHTML = '';
+  for (let c = 0; c < m.upperCount; c++) {
+    addScoreRow(tbody, catNames[c], record.playerScores[c], record.aiScores[c]);
+  }
+  const pUS = record.playerScores.slice(0, m.upperCount).reduce((a, s) => a + (s >= 0 ? s : 0), 0);
+  const aUS = record.aiScores.slice(0, m.upperCount).reduce((a, s) => a + (s >= 0 ? s : 0), 0);
+  const pB = record.playerUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${pUS}/${m.upperThreshold}`;
+  const aB = record.aiUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${aUS}/${m.upperThreshold}`;
+  addScoreRow(tbody, 'Bonus', pB, aB, true);
+  for (let c = m.upperCount; c < m.numCat; c++) {
+    addScoreRow(tbody, catNames[c], record.playerScores[c], record.aiScores[c]);
+  }
+  addScoreRow(tbody, 'Total', record.playerTotal, record.aiTotal, true);
+
+  // 분석
+  const analysisEl = $('detail-analysis');
+  if (record.playScore != null) {
+    let html = `<div class="play-score">Play Score: <strong>${record.playScore}/100</strong> (EV Loss: ${record.evLoss.toFixed(1)})</div>`;
+    if (record.mistakes && record.mistakes.length > 0) {
+      html += '<div class="mistakes">';
+      const shown = record.mistakes.slice(0, 8);
+      for (const h of shown) {
+        const dice = h.dice.map(d => DICE_DOTS[d]).join('');
+        const sp = h.special != null ? (h.special === 0 ? ' +W' : ' +' + DICE_DOTS[h.special]) : '';
+        const playerStr = fmtAction(h.player, h.playerScore, catNames, h.dice, h.special, m);
+        const optStr = fmtAction(h.optimal, h.optimalScore, catNames, h.dice, h.special, m);
+        html += `<div class="mistake">`;
+        html += `<div class="mistake-header">R${h.round} ${dice}${sp} reroll${h.rerolls} \u2014 <strong>#${h.rank}/${h.totalActions}</strong> (EV <strong>-${h.evDiff.toFixed(1)}</strong>)</div>`;
+        html += `<div class="mistake-detail">${playerStr} \u2192 optimal: ${optStr}</div>`;
+        html += `</div>`;
+      }
+      if (record.mistakes.length > 8) html += `<div class="more">...and ${record.mistakes.length - 8} more</div>`;
+      html += '</div>';
+    } else {
+      html += '<div class="perfect">Perfect play!</div>';
+    }
+    analysisEl.innerHTML = html;
+  } else {
+    analysisEl.innerHTML = '<div class="play-score">Analysis not available for this game.</div>';
+  }
+
+  // 라운드별 리플레이
+  const rounds = Game.extractRounds(record);
+  const roundsEl = $('detail-rounds');
+  roundsEl.innerHTML = '';
+
+  if (rounds.length > 0) {
+    const roundsTitle = document.createElement('h3');
+    roundsTitle.className = 'rounds-title';
+    roundsTitle.textContent = 'Round-by-round';
+    roundsEl.appendChild(roundsTitle);
+
+    for (const rd of rounds) {
+      const div = document.createElement('div');
+      div.className = 'round-card';
+
+      let html = `<div class="round-header">Round ${rd.round}</div>`;
+
+      // 초기 주사위
+      const rollDice = rd.roll.dice.map(d => DICE_DOTS[d]).join(' ');
+      const rollSp = rd.roll.specialDie != null ? (rd.roll.specialDie === 0 ? ' +W' : ' +' + DICE_DOTS[rd.roll.specialDie]) : '';
+      html += `<div class="round-roll">${rollDice}${rollSp}</div>`;
+
+      // 리롤
+      for (const rr of rd.rerolls) {
+        const rrDice = rr.dice.map(d => DICE_DOTS[d]).join(' ');
+        const rrSp = rr.specialDie != null ? (rr.specialDie === 0 ? ' +W' : ' +' + DICE_DOTS[rr.specialDie]) : '';
+        html += `<div class="round-reroll">\u2192 ${rrDice}${rrSp}</div>`;
+      }
+
+      // 배정
+      if (rd.assign) {
+        html += `<div class="round-assign">\u2192 <strong>${catNames[rd.assign.category]}</strong> ${rd.assign.score}pts</div>`;
+      }
+
+      // AI
+      if (rd.ai && rd.ai.log.length > 0) {
+        const aiParts = [];
+        for (const e of rd.ai.log) {
+          if (e.type === 'reroll') {
+            const from = e.from.map(d => DICE_DOTS[d]).join('');
+            const kept = e.kept.length ? e.kept.map(d => DICE_DOTS[d]).join('') : 'none';
+            aiParts.push(`${from} keep ${kept}`);
+          } else {
+            const d = e.dice.map(d => DICE_DOTS[d]).join('');
+            if (!aiParts.length) aiParts.push(d);
+            aiParts.push(`\u2192 ${catNames[e.cat]} ${e.score}pts`);
+          }
+        }
+        html += `<div class="round-ai">\uD83E\uDD16 ${aiParts.join(' ')}</div>`;
+      }
+
+      div.innerHTML = html;
+      roundsEl.appendChild(div);
+    }
   }
 }
 

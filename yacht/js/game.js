@@ -86,6 +86,7 @@ export function createGame(mode = 'standard') {
     rerolls: 2,
     aMask: 0, aUpper: 0, aScores: new Array(m.numCat).fill(-1),
     aiLog: null, history: [], totalEVLoss: 0, totalDecisions: 0,
+    moves: [],
   };
   if (m.hasSpecial) {
     game.dice = rollN(4);
@@ -93,7 +94,32 @@ export function createGame(mode = 'standard') {
   } else {
     game.dice = rollN(5);
   }
+  logRoll(game);
   return game;
+}
+
+// ── 수 기록 ──
+
+function diceSnapshot(game) {
+  const snap = { dice: [...game.dice] };
+  if (M(game).hasSpecial) snap.specialDie = game.specialDie;
+  return snap;
+}
+
+function logRoll(game) {
+  game.moves.push({ type: 'roll', round: game.round, rerolls: game.rerolls, ...diceSnapshot(game) });
+}
+
+export function logReroll(game, rerolledIndices) {
+  game.moves.push({ type: 'reroll', round: game.round, rerolls: game.rerolls, selected: rerolledIndices, ...diceSnapshot(game) });
+}
+
+export function logAssign(game, cat, score) {
+  game.moves.push({ type: 'assign', round: game.round, category: cat, score, ...diceSnapshot(game) });
+}
+
+export function logAI(game) {
+  game.moves.push({ type: 'ai', round: game.round, log: game.aiLog ? [...game.aiLog] : [] });
 }
 
 // ── 조회 ──
@@ -260,6 +286,7 @@ export function nextRound(game) {
       game.dice = rollN(5);
     }
     game.rerolls = 2;
+    logRoll(game);
   }
 }
 
@@ -305,18 +332,54 @@ function generateGameId(mode) {
 export function saveGameHistory(game) {
   const all = loadJSON(HISTORY_KEY);
   const { pT, aT } = calcTotal(game);
+  const m = M(game);
+  const analysis = getAnalysis(game);
   const gameId = generateGameId(game.mode);
   all[gameId] = {
     date: new Date().toISOString(),
     mode: game.mode,
+    playerScores: [...game.pScores],
+    aiScores: [...game.aScores],
+    playerUpper: game.pUpper,
+    aiUpper: game.aUpper,
     playerTotal: pT,
     aiTotal: aT,
+    moves: game.moves || [],
+    playScore: analysis.playScore,
+    evLoss: parseFloat(analysis.evLoss),
+    mistakes: analysis.mistakes,
   };
-  // 최근 50개만 유지
+  // 최근 30개만 유지 (상세 데이터가 크므로)
   const entries = Object.entries(all).sort(([,a],[,b]) => b.date.localeCompare(a.date));
-  const trimmed = Object.fromEntries(entries.slice(0, 50));
+  const trimmed = Object.fromEntries(entries.slice(0, 30));
   saveJSON(HISTORY_KEY, trimmed);
   return gameId;
+}
+
+export function getGameRecord(gameId) {
+  const all = loadJSON(HISTORY_KEY);
+  const g = all[gameId];
+  return g ? { id: gameId, ...g } : null;
+}
+
+/** moves 배열에서 라운드별 데이터 추출 */
+export function extractRounds(record) {
+  const rounds = [];
+  let cur = null;
+  for (const mv of (record.moves || [])) {
+    if (mv.type === 'roll') {
+      cur = { round: mv.round, roll: mv, rerolls: [], assign: null, ai: null };
+    } else if (mv.type === 'reroll' && cur) {
+      cur.rerolls.push(mv);
+    } else if (mv.type === 'assign' && cur) {
+      cur.assign = mv;
+    } else if (mv.type === 'ai' && cur) {
+      cur.ai = mv;
+      rounds.push(cur);
+      cur = null;
+    }
+  }
+  return rounds;
 }
 
 export function getGameHistoryList() {

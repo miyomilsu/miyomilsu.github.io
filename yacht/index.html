@@ -16,6 +16,7 @@
       <button id="btn-trickal" class="menu-btn trickal">Trickal<span class="mode-desc">8 categories + Erfin</span></button>
     </div>
     <div id="menu-records" class="records hidden"></div>
+    <button id="btn-history" class="history-link">Game History</button>
   </div>
 
   <!-- 로딩 -->
@@ -67,6 +68,35 @@
     <div id="analysis" class="analysis"></div>
 
     <button id="btn-new-game" class="menu-btn standard">New Game</button>
+  </div>
+
+  <!-- 히스토리 -->
+  <div id="history-screen" class="screen hidden">
+    <div class="screen-header">
+      <button id="btn-history-back" class="back-btn">&larr;</button>
+      <h2>Game History</h2>
+    </div>
+    <div id="history-list" class="history-list"></div>
+  </div>
+
+  <!-- 상세 보기 -->
+  <div id="detail-screen" class="screen hidden">
+    <div class="screen-header">
+      <button id="btn-detail-back" class="back-btn">&larr;</button>
+      <h2 id="detail-title"></h2>
+    </div>
+    <p id="detail-scores" class="result-score"></p>
+    <p id="detail-date" class="detail-date"></p>
+
+    <table class="scoreboard">
+      <thead>
+        <tr><th></th><th>You</th><th>AI</th></tr>
+      </thead>
+      <tbody id="detail-scoreboard-body"></tbody>
+    </table>
+
+    <div id="detail-analysis" class="analysis"></div>
+    <div id="detail-rounds" class="detail-rounds"></div>
   </div>
 
   <script type="module" src="js/app.js"></script>
