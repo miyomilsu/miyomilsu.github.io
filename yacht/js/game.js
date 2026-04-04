@@ -382,6 +382,33 @@ export function extractRounds(record) {
   return rounds;
 }
 
+/** 라운드 N 직전까지의 플레이어 mask/upper 복원 */
+export function replayState(record, beforeRound) {
+  const m = MODE[record.mode];
+  let pMask = 0, pUpper = 0;
+  for (const rd of extractRounds(record)) {
+    if (rd.round >= beforeRound) break;
+    if (rd.assign) {
+      const cat = rd.assign.category;
+      pMask |= (1 << cat);
+      if (cat < m.upperCount) pUpper = Math.min(pUpper + rd.assign.score, m.upperThreshold);
+    }
+  }
+  return { pMask, pUpper };
+}
+
+/** 주사위 상태 → diceIdx 변환 */
+export function computeDiceIdx(dice, specialDie, mode) {
+  const m = MODE[mode];
+  if (m.hasSpecial) {
+    const tk = m.diceTk;
+    const sorted = dice.slice().sort((a, b) => a - b);
+    return tk.diceStateIdx(tk.normalToIndex(sorted), tk.specialToIdx(specialDie));
+  }
+  const sorted = dice.slice().sort((a, b) => a - b);
+  return m.dice.comboToIndex(sorted);
+}
+
 export function getGameHistoryList() {
   const all = loadJSON(HISTORY_KEY);
   return Object.entries(all)

@@ -517,9 +517,227 @@ body {
 .round-assign { color: var(--gold); }
 .round-ai { color: var(--text-dim); font-size: 0.9em; margin-top: 4px; }
 
+/* ── 라운드 분석 ── */
+
+#round-analysis-screen {
+  max-width: 600px;
+}
+
+#round-analysis-screen .screen-header {
+  flex-wrap: wrap;
+}
+
+.ra-score-summary {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 0.9em;
+}
+
+.ra-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ra-nav-btn {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid var(--surface2);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.ra-nav-btn:hover:not(:disabled) { border-color: var(--blue); }
+.ra-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.ra-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ra-panel {
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.ra-panel-header {
+  font-size: 1.2em;
+  font-weight: 700;
+  color: var(--blue);
+  margin-bottom: 10px;
+}
+
+.ra-dice {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.ra-die {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  font-size: 1.8em;
+  background: var(--bg);
+  border: 2px solid var(--surface2);
+  border-radius: 8px;
+}
+
+.ra-die.ra-sp {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.ra-top-header {
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ra-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface2);
+  color: var(--text-dim);
+  font-size: 0.75em;
+  font-weight: 700;
+  cursor: help;
+}
+
+.ra-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ra-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 1em;
+  min-height: 40px;
+}
+
+.ra-action.ra-optimal {
+  border: 2px solid var(--gold);
+  background: rgba(243, 156, 18, 0.08);
+}
+
+.ra-action.ra-player {
+  border: 2px solid var(--blue);
+  background: rgba(52, 152, 219, 0.08);
+}
+
+.ra-action.ra-out {
+  margin-top: 8px;
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.ra-rank {
+  font-weight: 700;
+  color: var(--text-dim);
+  min-width: 28px;
+  font-size: 0.9em;
+}
+
+.ra-optimal .ra-rank { color: var(--gold); }
+
+.ra-desc {
+  flex: 1;
+  font-size: 1em;
+}
+
+.ra-cat { font-weight: 600; }
+.ra-pts { color: var(--text-dim); font-size: 0.9em; }
+
+.ra-die-sm {
+  display: inline-block;
+  font-size: 1.3em;
+  vertical-align: middle;
+  margin: 0 1px;
+}
+
+.ra-die-sm.ra-sp { color: var(--green); }
+
+.ra-ev {
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.95em;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.ra-ev-diff {
+  display: block;
+  font-size: 0.8em;
+  color: var(--red);
+  font-weight: 400;
+}
+
+.ra-you {
+  background: var(--blue);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.ra-no-action {
+  text-align: center;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 8px;
+}
+
+.ra-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-radius: 8px;
+  font-size: 1.05em;
+}
+
+.ra-assign-result { color: var(--gold); }
+.ra-ai-result { color: var(--text-dim); }
+
+.ra-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 40px 0;
+}
+
 /* ── 반응형 ── */
 
 @media (max-width: 400px) {
   .die { width: 54px; height: 54px; font-size: 2em; }
   .screen { padding: 12px; }
+  .ra-die { width: 40px; height: 40px; font-size: 1.5em; }
+  .ra-action { font-size: 0.9em; padding: 6px 8px; }
 }

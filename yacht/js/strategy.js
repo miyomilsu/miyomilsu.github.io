@@ -164,6 +164,40 @@ export function analyzeAction(mask, upper, rerolls, diceIdx, playerAction) {
   return { rank, totalActions: allEVs.length, playerEV, optimalEV, evDiff: optimalEV - playerEV };
 }
 
+/**
+ * 주어진 상태에서 가능한 모든 행동을 EV 내림차순으로 반환
+ * @returns Array<{ type, action, ev, desc, keepMask?, category?, keptIndices? }>
+ */
+export function enumerateActions(mask, upper, rerolls, diceIdx) {
+  const { dp } = computeTurnDP(mask, upper);
+  const sorted = COMBOS[diceIdx];
+  const results = [];
+
+  // 배정 행동
+  for (let c = 0; c < NUM_CATEGORIES; c++) {
+    if (mask & (1 << c)) continue;
+    const score = scores[diceIdx][c];
+    const newUpper = c < 6 ? Math.min(upper + score, UPPER_BONUS_THRESHOLD) : upper;
+    const ev = score + turnStartEV[(mask | (1 << c)) * NUM_UPPER_STATES + newUpper];
+    results.push({ type: 'assign', action: c, ev, category: c, score });
+  }
+
+  // 리롤 행동
+  if (rerolls > 0) {
+    const prevDP = dp[rerolls - 1];
+    for (const { keepMask, indices, probs } of transitions[diceIdx]) {
+      let ev = 0;
+      for (let t = 0; t < indices.length; t++) ev += probs[t] * prevDP[indices[t]];
+      const keptIndices = [];
+      for (let i = 0; i < 5; i++) if (keepMask & (1 << i)) keptIndices.push(i);
+      results.push({ type: 'reroll', action: NUM_CATEGORIES + keepMask, ev, keepMask, keptIndices, keptValues: keptIndices.map(i => sorted[i]) });
+    }
+  }
+
+  results.sort((a, b) => b.ev - a.ev);
+  return results;
+}
+
 export function getTurnStartEV(mask, upper) {
   return turnStartEV[mask * NUM_UPPER_STATES + upper];
 }

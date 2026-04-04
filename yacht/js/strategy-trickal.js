@@ -227,6 +227,60 @@ export function analyzeAction(mask, upper, rerolls, diceIdx, playerAction) {
   return { rank, totalActions: allEVs.length, playerEV, optimalEV, evDiff: optimalEV - playerEV };
 }
 
+/**
+ * 주어진 상태에서 가능한 모든 행동을 EV 내림차순으로 반환
+ */
+export function enumerateActions(mask, upper, rerolls, diceIdx) {
+  const { dp } = computeTurnDP(mask, upper);
+  const ni = Math.floor(diceIdx / SPECIAL_COUNT);
+  const si = diceIdx % SPECIAL_COUNT;
+  const results = [];
+
+  // 배정 행동
+  for (let c = 0; c < NUM_CATEGORIES; c++) {
+    if (mask & (1 << c)) continue;
+    const score = scores[diceIdx][c];
+    const newUpper = c < UPPER_COUNT ? Math.min(upper + score, UPPER_BONUS_THRESHOLD) : upper;
+    const ev = score + turnStartEV[(mask | (1 << c)) * NUM_UPPER_STATES + newUpper];
+    results.push({ type: 'assign', action: c, ev, category: c, score });
+  }
+
+  // 리롤 행동
+  if (rerolls > 0) {
+    const prevDP = dp[rerolls - 1];
+    const avgPrev = new Float64Array(NORMAL_COUNT);
+    for (let nni = 0; nni < NORMAL_COUNT; nni++) {
+      let s = 0;
+      for (let ssi = 0; ssi < SPECIAL_COUNT; ssi++) s += prevDP[nni * SPECIAL_COUNT + ssi];
+      avgPrev[nni] = s / FACES;
+    }
+
+    const KEEP_ALL = (1 << NUM_NORMAL) - 1;
+    for (const { normalKeepMask, indices, probs } of normalTrans[ni]) {
+      // keepSpecial = true (일반 주사위 전부 킵이 아닌 경우만)
+      if (normalKeepMask !== KEEP_ALL) {
+        let ev = 0;
+        for (let t = 0; t < indices.length; t++) ev += probs[t] * prevDP[indices[t] * SPECIAL_COUNT + si];
+        const keptNormal = [];
+        for (let i = 0; i < NUM_NORMAL; i++) if (normalKeepMask & (1 << i)) keptNormal.push(i);
+        results.push({ type: 'reroll', ev, normalKeepMask, keepSpecial: true, keptNormal });
+      }
+
+      // keepSpecial = false
+      {
+        let ev = 0;
+        for (let t = 0; t < indices.length; t++) ev += probs[t] * avgPrev[indices[t]];
+        const keptNormal = [];
+        for (let i = 0; i < NUM_NORMAL; i++) if (normalKeepMask & (1 << i)) keptNormal.push(i);
+        results.push({ type: 'reroll', ev, normalKeepMask, keepSpecial: false, keptNormal });
+      }
+    }
+  }
+
+  results.sort((a, b) => b.ev - a.ev);
+  return results;
+}
+
 export function getTurnStartEV(mask, upper) {
   return turnStartEV[mask * NUM_UPPER_STATES + upper];
 }
