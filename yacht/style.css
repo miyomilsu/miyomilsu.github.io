@@ -708,6 +708,61 @@ body {
   letter-spacing: 0.05em;
 }
 
+.ra-separator {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.8em;
+  padding: 4px 0;
+  opacity: 0.7;
+}
+
+/* ── 목표 분포 ── */
+
+.ra-target {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--surface2);
+}
+
+.ra-target-header {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.ra-target-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+  align-items: baseline;
+}
+
+.ra-target-label {
+  font-size: 0.8em;
+  color: var(--text-dim);
+  min-width: 55px;
+  flex-shrink: 0;
+}
+
+.ra-target-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 0.9em;
+}
+
+.ra-target-item {
+  white-space: nowrap;
+}
+
+.ra-target-item strong {
+  color: var(--gold);
+  margin-left: 2px;
+}
+
 .ra-no-action {
   text-align: center;
   color: var(--text-dim);

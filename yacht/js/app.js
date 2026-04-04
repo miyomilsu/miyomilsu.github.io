@@ -629,16 +629,18 @@ function renderRoundAnalysis(record, roundNum) {
       html += `</div>`;
     }
 
-    // 플레이어 선택이 top5 밖이면 별도 표시
+    // 플레이어 선택이 top5 밖이면 ... 구분 후 별도 표시
     if (playerAction) {
       const inTop5 = top5.some(a => isActionMatch(a, playerAction, pt, m));
       if (!inTop5) {
         const playerRank = findPlayerRank(allActions, playerAction, pt, m);
         const playerEV = playerRank ? playerRank.ev : null;
         const desc = playerAction.type === 'assign'
-          ? `${catNames[playerAction.category]} ${playerAction.score}pts`
+          ? `<span class="ra-cat">${catNames[playerAction.category]}</span> <span class="ra-pts">${playerAction.score}pts</span>`
           : formatPlayerReroll(playerAction, pt, m);
         const evDiff = playerEV != null ? topEV - playerEV : 0;
+        const totalActions = allActions.length;
+        html += `<div class="ra-separator">\u22EE ${totalActions - 5} more actions</div>`;
         html += `<div class="ra-action ra-player ra-out">`;
         html += `<span class="ra-rank">#${playerRank ? playerRank.rank : '?'}</span>`;
         html += `<span class="ra-desc">${desc}</span>`;
@@ -650,7 +652,14 @@ function renderRoundAnalysis(record, roundNum) {
 
     html += `</div>`; // ra-actions
 
-    // 이 시점에서 배정 안 했으면 (리롤 또는 아직 도달 안 함) 표시
+    // 목표 분포 (최적 행동이 리롤일 때)
+    const optAction = strat.getAction(pMask, pUpper, r, diceIdx);
+    if (r > 0 && optAction >= m.numCat) {
+      const { dist, scoreAccum } = strat.traceTargetDist(pMask, pUpper, r, diceIdx);
+      html += renderTargetDist(dist, scoreAccum, catNames);
+    }
+
+    // 이 시점에서 배정 안 했으면 (아직 도달 안 함) 표시
     if (!playerAction) {
       html += `<div class="ra-no-action">Not reached</div>`;
     }
@@ -676,6 +685,42 @@ function renderRoundAnalysis(record, roundNum) {
     footer.innerHTML = footerHtml;
     container.appendChild(footer);
   }
+}
+
+// ── 목표 분포 ──
+
+function renderTargetDist(dist, scoreAccum, catNames) {
+  // 확률 top 5
+  const probEntries = [];
+  const scoreEntries = [];
+  for (let i = 0; i < dist.length; i++) {
+    if (dist[i] > 0.005) {
+      probEntries.push({ name: catNames[i], val: dist[i] });
+      scoreEntries.push({ name: catNames[i], val: scoreAccum[i] / dist[i] });
+    }
+  }
+  probEntries.sort((a, b) => b.val - a.val);
+  scoreEntries.sort((a, b) => b.val - a.val);
+
+  let html = '<div class="ra-target">';
+  html += '<div class="ra-target-header">Target (optimal play)</div>';
+
+  // 확률 top5
+  html += '<div class="ra-target-row"><span class="ra-target-label">By prob</span><span class="ra-target-items">';
+  for (const e of probEntries.slice(0, 5)) {
+    html += `<span class="ra-target-item">${e.name} <strong>${(e.val * 100).toFixed(0)}%</strong></span>`;
+  }
+  html += '</span></div>';
+
+  // 점수 top5
+  html += '<div class="ra-target-row"><span class="ra-target-label">By score</span><span class="ra-target-items">';
+  for (const e of scoreEntries.slice(0, 5)) {
+    html += `<span class="ra-target-item">${e.name} <strong>${e.val.toFixed(1)}</strong></span>`;
+  }
+  html += '</span></div>';
+
+  html += '</div>';
+  return html;
 }
 
 // ── 행동 포맷 헬퍼 ──
