@@ -606,48 +606,26 @@ function renderRoundAnalysis(record, roundNum) {
     let html = `<div class="ra-panel-header">Reroll ${r}</div>`;
     html += `<div class="ra-dice">${diceHtml}${spHtml}</div>`;
 
-    // Top 5 리스트
-    html += `<div class="ra-top-header">Top 5 <span class="ra-help" title="Placeholder">?</span></div>`;
+    // 전체 행동 리스트
+    html += `<div class="ra-top-header">All actions (${allActions.length}) <span class="ra-help" title="Placeholder">?</span></div>`;
     html += `<div class="ra-actions">`;
 
-    for (let i = 0; i < top5.length; i++) {
-      const act = top5[i];
+    for (let i = 0; i < allActions.length; i++) {
+      const act = allActions[i];
       const evDiff = topEV - act.ev;
       const isPlayerChoice = isActionMatch(act, playerAction, pt, m);
       const cls = i === 0 ? 'ra-action ra-optimal' : (isPlayerChoice ? 'ra-action ra-player' : 'ra-action');
-      const rankLabel = `#${i + 1}`;
       const desc = formatActionDesc(act, catNames, pt, m);
       const evStr = act.ev.toFixed(1);
-      const diffStr = evDiff < 0.01 ? '' : `<span class="ra-ev-diff">-${evDiff.toFixed(1)}</span>`;
+      const diffStr = i === 0 ? '' : `<span class="ra-ev-diff">-${evDiff.toFixed(1)}</span>`;
       const playerMark = isPlayerChoice ? '<span class="ra-you">YOU</span>' : '';
 
       html += `<div class="${cls}">`;
-      html += `<span class="ra-rank">${rankLabel}</span>`;
+      html += `<span class="ra-rank">#${i + 1}</span>`;
       html += `<span class="ra-desc">${desc}</span>`;
       html += `<span class="ra-ev">${evStr}${diffStr}</span>`;
       html += playerMark;
       html += `</div>`;
-    }
-
-    // 플레이어 선택이 top5 밖이면 ... 구분 후 별도 표시
-    if (playerAction) {
-      const inTop5 = top5.some(a => isActionMatch(a, playerAction, pt, m));
-      if (!inTop5) {
-        const playerRank = findPlayerRank(allActions, playerAction, pt, m);
-        const playerEV = playerRank ? playerRank.ev : null;
-        const desc = playerAction.type === 'assign'
-          ? `<span class="ra-cat">${catNames[playerAction.category]}</span> <span class="ra-pts">${playerAction.score}pts</span>`
-          : formatPlayerReroll(playerAction, pt, m);
-        const evDiff = playerEV != null ? topEV - playerEV : 0;
-        const totalActions = allActions.length;
-        html += `<div class="ra-separator">\u22EE ${totalActions - 5} more actions</div>`;
-        html += `<div class="ra-action ra-player ra-out">`;
-        html += `<span class="ra-rank">#${playerRank ? playerRank.rank : '?'}</span>`;
-        html += `<span class="ra-desc">${desc}</span>`;
-        html += `<span class="ra-ev">${playerEV != null ? playerEV.toFixed(1) : '?'}<span class="ra-ev-diff">-${evDiff.toFixed(1)}</span></span>`;
-        html += `<span class="ra-you">YOU</span>`;
-        html += `</div>`;
-      }
     }
 
     html += `</div>`; // ra-actions
@@ -741,25 +719,6 @@ function formatActionDesc(act, catNames, pt, m) {
   return `keep ${kept || 'none'}`;
 }
 
-function formatPlayerReroll(playerAction, pt, m) {
-  const rerolled = playerAction.rerolled;
-  if (m.hasSpecial) {
-    const kept = [];
-    for (let i = 0; i < pt.dice.length; i++) {
-      if (!rerolled.has(i)) kept.push(`<span class="ra-die-sm">${DICE_DOTS[pt.dice[i]]}</span>`);
-    }
-    if (pt.specialDie != null && !rerolled.has(pt.dice.length)) {
-      kept.push(`<span class="ra-die-sm ra-sp">${pt.specialDie === 0 ? 'W' : DICE_DOTS[pt.specialDie]}</span>`);
-    }
-    return `keep ${kept.join('') || 'none'}`;
-  }
-  const kept = [];
-  for (let i = 0; i < 5; i++) {
-    if (!rerolled.has(i)) kept.push(`<span class="ra-die-sm">${DICE_DOTS[pt.dice[i]]}</span>`);
-  }
-  return `keep ${kept.join('') || 'none'}`;
-}
-
 function isActionMatch(act, playerAction, pt, m) {
   if (!playerAction) return false;
   if (act.type !== playerAction.type) return false;
@@ -790,15 +749,6 @@ function isActionMatch(act, playerAction, pt, m) {
   playerKept.sort((a, b) => a - b);
   const playerKM = m.dice.keepToMask(sorted, playerKept);
   return act.keepMask === playerKM;
-}
-
-function findPlayerRank(allActions, playerAction, pt, m) {
-  for (let i = 0; i < allActions.length; i++) {
-    if (isActionMatch(allActions[i], playerAction, pt, m)) {
-      return { rank: i + 1, ev: allActions[i].ev };
-    }
-  }
-  return null;
 }
 
 // 시작
