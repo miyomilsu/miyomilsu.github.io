@@ -425,17 +425,53 @@ function finishRound() {
   }
 }
 
-/** AI 턴을 주사위 애니메이션으로 단계별 재생 */
+/**
+ * AI 턴을 주사위 애니메이션으로 단계별 재생
+ * 핵심: 주사위 DOM 요소를 한 번만 생성하고, 위치는 고정한 채 값만 업데이트
+ */
 function animateAITurn(aiLog, callback) {
   const m = Game.MODE[game.mode];
   const catNames = m.scoring.CATEGORY_NAMES;
+  const numDice = m.hasSpecial ? 4 : 5;
   const aiTurn = $('ai-turn');
   aiTurn.classList.remove('hidden');
   aiTurn.innerHTML = '<div class="ai-turn-label">\uD83E\uDD16 AI 턴</div><div id="ai-dice-area" class="ai-dice-area"></div><div id="ai-step-text" class="ai-step-text"></div>';
 
   const diceArea = $('ai-dice-area');
   const stepText = $('ai-step-text');
+
+  // 주사위 DOM 한 번만 생성 — 위치 고정
+  const diceEls = [];
+  for (let i = 0; i < numDice; i++) {
+    const die = document.createElement('div');
+    die.className = 'die ai-anim-die';
+    diceArea.appendChild(die);
+    diceEls.push(die);
+  }
+  let spEl = null;
+  if (m.hasSpecial) {
+    spEl = document.createElement('div');
+    spEl.className = 'die ai-anim-die special';
+    diceArea.appendChild(spEl);
+  }
+
+  // 현재 위치별 주사위 값 (정렬 안 된 상태로 유지)
+  // 첫 from(정렬됨)으로 초기화, 이후 리롤 시 해당 위치만 교체
+  const slots = new Array(numDice).fill(0);
+  let specialVal = null;
+
   let stepIdx = 0;
+
+  function setSlotValues(sortedDice, special) {
+    for (let i = 0; i < numDice; i++) {
+      slots[i] = sortedDice[i];
+      diceEls[i].textContent = DICE_DOTS[sortedDice[i]];
+    }
+    if (spEl && special != null) {
+      specialVal = special;
+      spEl.textContent = special === 0 ? 'W' : DICE_DOTS[special];
+    }
+  }
 
   function showStep() {
     if (stepIdx >= aiLog.length) {
@@ -446,29 +482,99 @@ function animateAITurn(aiLog, callback) {
     const entry = aiLog[stepIdx];
 
     if (entry.type === 'reroll') {
-      // 초기 주사위 보여주기
-      renderAIDice(diceArea, entry.from, entry.special, m);
+      // 첫 단계면 초기값 세팅
+      if (stepIdx === 0) setSlotValues(entry.from, entry.special);
       stepText.textContent = '';
 
+      // 킵 여부를 위치(인덱스) 기준으로 계산
+      const keptPositions = new Set();
+      const usedKept = new Array(entry.kept.length).fill(false);
+      for (let i = 0; i < numDice; i++) {
+        for (let k = 0; k < entry.kept.length; k++) {
+          if (!usedKept[k] && entry.kept[k] === slots[i]) {
+            usedKept[k] = true;
+            keptPositions.add(i);
+            break;
+          }
+        }
+      }
+
       setTimeout(() => {
-        // 킵 표시 — 충분히 오래 보여줌
-        highlightKept(diceArea, entry.from, entry.kept, m);
+        // 킵/리롤 하이라이트
+        for (let i = 0; i < numDice; i++) {
+          diceEls[i].classList.toggle('ai-kept-die', keptPositions.has(i));
+          diceEls[i].classList.toggle('ai-reroll-die', !keptPositions.has(i));
+        }
         const keptStr = entry.kept.length ? entry.kept.map(d => DICE_DOTS[d]).join('') : '없음';
         stepText.textContent = `킵 ${keptStr} → 리롤`;
 
         setTimeout(() => {
-          // 스크램블은 짧게, 결과 보여주는 시간 길게
-          const resultDice = entry.to;
-          scrambleAIDice(diceArea, entry.kept, resultDice, entry.special, m, () => {
-            stepIdx++;
-            setTimeout(showStep, 800);
-          });
+          // 리롤된 위치의 최종값 계산
+          // entry.to는 [...kept, ...newRolls] 형태, 정렬 안 됨
+          // 다음 step의 from이 to를 정렬한 것이므로, to를 정렬해서 새 slots 구성
+          const nextSorted = entry.to.slice().sort((a, b) => a - b);
+          // 킵 위치는 유지, 리롤 위치에 새 값 배치
+          const newValsForRerolled = [];
+          const nextUsed = new Array(nextSorted.length).fill(false);
+          // 먼저 킵된 값을 nextSorted에서 매칭해서 제외
+          for (const pos of keptPositions) {
+            for (let j = 0; j < nextSorted.length; j++) {
+              if (!nextUsed[j] && nextSorted[j] === slots[pos]) {
+                nextUsed[j] = true;
+                break;
+              }
+            }
+          }
+          // 남은 값이 리롤된 위치에 들어갈 값
+          for (let j = 0; j < nextSorted.length; j++) {
+            if (!nextUsed[j]) newValsForRerolled.push(nextSorted[j]);
+          }
+
+          // 리롤 위치에 새 값 배정
+          const rerollPositions = [];
+          for (let i = 0; i < numDice; i++) {
+            if (!keptPositions.has(i)) rerollPositions.push(i);
+          }
+
+          // 스크램블 시작
+          for (const pos of rerollPositions) {
+            diceEls[pos].classList.remove('ai-reroll-die');
+            diceEls[pos].classList.add('tumble');
+          }
+
+          let frame = 0;
+          const totalFrames = 6;
+          const interval = setInterval(() => {
+            frame++;
+            let ri = 0;
+            for (const pos of rerollPositions) {
+              if (frame < totalFrames) {
+                diceEls[pos].textContent = DICE_DOTS[Math.floor(Math.random() * 6) + 1];
+              } else {
+                const newVal = newValsForRerolled[ri];
+                slots[pos] = newVal;
+                diceEls[pos].textContent = DICE_DOTS[newVal];
+                diceEls[pos].classList.remove('tumble', 'ai-kept-die');
+              }
+              ri++;
+            }
+            // 킵 하이라이트도 해제
+            if (frame >= totalFrames) {
+              for (const pos of keptPositions) {
+                diceEls[pos].classList.remove('ai-kept-die');
+              }
+              clearInterval(interval);
+              stepIdx++;
+              setTimeout(showStep, 800);
+            }
+          }, 40);
         }, 700);
       }, 600);
 
     } else if (entry.type === 'assign') {
-      // 최종 주사위 + 배정 — 결과를 충분히 보여줌
-      renderAIDice(diceArea, entry.dice, entry.special, m);
+      // 배정: 첫 단계가 바로 assign이면 값 세팅
+      if (stepIdx === 0) setSlotValues(entry.dice, entry.special);
+      // 이미 slots에 현재 값이 있으므로 그대로 유지
 
       setTimeout(() => {
         stepText.innerHTML = `\u2192 <strong>${catNames[entry.cat]}</strong> ${entry.score}점`;
@@ -479,72 +585,6 @@ function animateAITurn(aiLog, callback) {
   }
 
   showStep();
-}
-
-function renderAIDice(container, dice, special, m) {
-  container.innerHTML = '';
-  dice.forEach(val => {
-    const die = document.createElement('div');
-    die.className = 'die ai-anim-die';
-    die.textContent = DICE_DOTS[val];
-    container.appendChild(die);
-  });
-  if (m.hasSpecial && special != null) {
-    const sp = document.createElement('div');
-    sp.className = 'die ai-anim-die special';
-    sp.textContent = special === 0 ? 'W' : DICE_DOTS[special];
-    container.appendChild(sp);
-  }
-}
-
-function highlightKept(container, from, kept, m) {
-  const dice = container.querySelectorAll('.ai-anim-die:not(.special)');
-  const usedKept = new Array(kept.length).fill(false);
-  dice.forEach((el, i) => {
-    let isKept = false;
-    for (let k = 0; k < kept.length; k++) {
-      if (!usedKept[k] && kept[k] === from[i]) {
-        usedKept[k] = true;
-        isKept = true;
-        break;
-      }
-    }
-    el.classList.toggle('ai-kept-die', isKept);
-    el.classList.toggle('ai-reroll-die', !isKept);
-  });
-}
-
-function scrambleAIDice(container, kept, resultDice, special, m, callback) {
-  const dice = container.querySelectorAll('.ai-anim-die:not(.special)');
-
-  // ai-reroll-die는 highlightKept에서 이미 설정됨
-  dice.forEach(el => {
-    if (el.classList.contains('ai-reroll-die')) {
-      el.classList.remove('ai-reroll-die');
-      el.classList.add('tumble');
-      el.style.opacity = '1';
-    }
-  });
-
-  let frame = 0;
-  const totalFrames = 6;
-  const interval = setInterval(() => {
-    frame++;
-    dice.forEach((el, i) => {
-      if (el.classList.contains('tumble')) {
-        if (frame < totalFrames) {
-          el.textContent = DICE_DOTS[Math.floor(Math.random() * 6) + 1];
-        } else {
-          el.textContent = DICE_DOTS[resultDice[i]];
-          el.classList.remove('tumble', 'ai-kept-die');
-        }
-      }
-    });
-    if (frame >= totalFrames) {
-      clearInterval(interval);
-      callback();
-    }
-  }, 40);
 }
 
 // ── 게임 종료 ──
