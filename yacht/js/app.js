@@ -540,24 +540,29 @@ function animateAITurn(aiLog, callback) {
         }
       }
 
+      // 에르핀 특수 주사위 킵 여부
+      const rerollSpecial = spEl && entry.keepSpecial != null && !entry.keepSpecial;
+
       setTimeout(() => {
-        // 킵/리롤 하이라이트
+        // 킵/리롤 하이라이트 — 일반 주사위
         for (let i = 0; i < numDice; i++) {
           diceEls[i].classList.toggle('ai-kept-die', keptPositions.has(i));
           diceEls[i].classList.toggle('ai-reroll-die', !keptPositions.has(i));
         }
+        // 에르핀 주사위 하이라이트
+        if (spEl) {
+          spEl.classList.toggle('ai-kept-die', !rerollSpecial);
+          spEl.classList.toggle('ai-reroll-die', rerollSpecial);
+        }
+
         const keptStr = entry.kept.length ? entry.kept.map(d => DICE_DOTS[d]).join('') : '없음';
-        stepText.textContent = `킵 ${keptStr} → 리롤`;
+        stepText.textContent = `킵 ${keptStr}${spEl && !rerollSpecial ? '+sp' : ''} → 리롤`;
 
         setTimeout(() => {
           // 리롤된 위치의 최종값 계산
-          // entry.to는 [...kept, ...newRolls] 형태, 정렬 안 됨
-          // 다음 step의 from이 to를 정렬한 것이므로, to를 정렬해서 새 slots 구성
           const nextSorted = entry.to.slice().sort((a, b) => a - b);
-          // 킵 위치는 유지, 리롤 위치에 새 값 배치
           const newValsForRerolled = [];
           const nextUsed = new Array(nextSorted.length).fill(false);
-          // 먼저 킵된 값을 nextSorted에서 매칭해서 제외
           for (const pos of keptPositions) {
             for (let j = 0; j < nextSorted.length; j++) {
               if (!nextUsed[j] && nextSorted[j] === slots[pos]) {
@@ -566,23 +571,28 @@ function animateAITurn(aiLog, callback) {
               }
             }
           }
-          // 남은 값이 리롤된 위치에 들어갈 값
           for (let j = 0; j < nextSorted.length; j++) {
             if (!nextUsed[j]) newValsForRerolled.push(nextSorted[j]);
           }
 
-          // 리롤 위치에 새 값 배정
           const rerollPositions = [];
           for (let i = 0; i < numDice; i++) {
             if (!keptPositions.has(i)) rerollPositions.push(i);
           }
 
-          // 스크램블 시작
+          // 스크램블 시작 — 일반 주사위
           for (const pos of rerollPositions) {
             diceEls[pos].classList.remove('ai-reroll-die');
             diceEls[pos].classList.add('tumble');
           }
+          // 에르핀 주사위 스크램블
+          if (spEl && rerollSpecial) {
+            spEl.classList.remove('ai-reroll-die');
+            spEl.classList.add('tumble');
+          }
 
+          const SPECIAL_VALS = [0, 2, 3, 4, 5, 6];
+          const finalSpecialVal = entry.special;
           let frame = 0;
           const totalFrames = 6;
           const interval = setInterval(() => {
@@ -599,11 +609,23 @@ function animateAITurn(aiLog, callback) {
               }
               ri++;
             }
-            // 킵 하이라이트도 해제
+            // 에르핀 주사위 스크램블
+            if (spEl && rerollSpecial) {
+              if (frame < totalFrames) {
+                const rv = SPECIAL_VALS[Math.floor(Math.random() * 6)];
+                spEl.className = 'die ai-anim-die special tumble';
+                spEl.innerHTML = pipHTML(rv === 0 ? 1 : rv);
+              } else {
+                specialVal = finalSpecialVal;
+                updateDieEl(spEl, finalSpecialVal, true);
+                spEl.classList.remove('tumble');
+              }
+            }
             if (frame >= totalFrames) {
               for (const pos of keptPositions) {
                 diceEls[pos].classList.remove('ai-kept-die');
               }
+              if (spEl) spEl.classList.remove('ai-kept-die');
               clearInterval(interval);
               stepIdx++;
               setTimeout(showStep, 800);
