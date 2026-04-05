@@ -4,8 +4,36 @@
 
 import * as Game from './game.js';
 
+// 주사위 눈 pip 위치 (3x3 그리드: tl tc tr / ml mc mr / bl bc br)
+const PIP_LAYOUTS = {
+  1: ['mc'],
+  2: ['tr', 'bl'],
+  3: ['tr', 'mc', 'bl'],
+  4: ['tl', 'tr', 'bl', 'br'],
+  5: ['tl', 'tr', 'mc', 'bl', 'br'],
+  6: ['tl', 'tr', 'ml', 'mr', 'bl', 'br'],
+};
+
+/** 주사위 pip HTML 생성 (die 내부에 들어갈 내용) */
+function pipHTML(val) {
+  const pips = PIP_LAYOUTS[val];
+  if (!pips) return '';
+  return pips.map(p => `<span class="pip ${p}"></span>`).join('');
+}
+
+/** 와일드 주사위 내부 HTML */
+function wildHTML() {
+  return '<img src="./img/erpin.png" alt="W">';
+}
+
+/** 에르핀 특수 주사위 내부 HTML */
+function specialPipHTML(val) {
+  if (val === 0) return wildHTML();
+  return pipHTML(val);
+}
+
+// 이전 호환용 (텍스트 전용 컨텍스트)
 const DICE_DOTS = ['', '\u2680', '\u2681', '\u2682', '\u2683', '\u2684', '\u2685'];
-const DICE_EMOJI = ['', '1', '2', '3', '4', '5', '6'];
 
 let game = null;
 let phase = 'menu';
@@ -143,8 +171,9 @@ function renderDice(rollIndices) {
     die.className = 'die' + (selectedDice.has(i) ? ' selected' : '');
     if (showCup && isRolled) die.classList.add('tumble');
     die.style.animationDelay = isRolled ? `${0.15 + i * 0.08}s` : '0s';
-    die.textContent = DICE_DOTS[val];
+    die.innerHTML = pipHTML(val);
     die.dataset.index = i;
+    die.dataset.val = val;
     if (phase === 'rolling' && game.rerolls > 0 && !animating) {
       die.addEventListener('click', () => toggleDie(i));
     } else if (animating) {
@@ -156,14 +185,15 @@ function renderDice(rollIndices) {
   });
 
   if (m.hasSpecial) {
-    const sp = document.createElement('div');
     const isWild = game.specialDie === 0;
     const isRolled = rollIndices && rollIndices.has(4);
-    sp.className = 'die special' + (selectedDice.has(4) ? ' selected' : '');
+    const sp = document.createElement('div');
+    sp.className = 'die' + (isWild ? ' wild-die' : ' special') + (selectedDice.has(4) ? ' selected' : '');
     if (showCup && isRolled) sp.classList.add('tumble');
     sp.style.animationDelay = isRolled ? `${0.15 + 4 * 0.08}s` : '0s';
-    sp.textContent = isWild ? 'W' : DICE_DOTS[game.specialDie];
+    sp.innerHTML = specialPipHTML(game.specialDie);
     sp.dataset.index = 4;
+    sp.dataset.val = game.specialDie;
     if (phase === 'rolling' && game.rerolls > 0 && !animating) {
       sp.addEventListener('click', () => toggleDie(4));
     } else {
@@ -191,25 +221,25 @@ function animateRoll(rolledIndices, callback) {
   const totalFrames = 6;
   const interval = setInterval(() => {
     frame++;
-    const dice = container.querySelectorAll('.die:not(.special)');
-    dice.forEach((el, i) => {
+    const normalDice = container.querySelectorAll('.die:not(.special):not(.wild-die)');
+    normalDice.forEach((el, i) => {
       if (rolledIndices.has(i)) {
-        if (frame < totalFrames) {
-          el.textContent = DICE_DOTS[Math.floor(Math.random() * 6) + 1];
-        } else {
-          el.textContent = DICE_DOTS[finalDice[i]];
-        }
+        el.innerHTML = frame < totalFrames
+          ? pipHTML(Math.floor(Math.random() * 6) + 1)
+          : pipHTML(finalDice[i]);
       }
     });
 
     if (m.hasSpecial && rolledIndices.has(4)) {
-      const spEl = container.querySelector('.die.special');
+      const spEl = container.querySelector('.die.special, .die.wild-die');
       if (spEl) {
         if (frame < totalFrames) {
           const rv = SPECIAL_VALS[Math.floor(Math.random() * 6)];
-          spEl.textContent = rv === 0 ? 'W' : DICE_DOTS[rv];
+          spEl.className = 'die special tumble';
+          spEl.innerHTML = pipHTML(rv === 0 ? 1 : rv);
         } else {
-          spEl.textContent = finalSpecial === 0 ? 'W' : DICE_DOTS[finalSpecial];
+          spEl.className = finalSpecial === 0 ? 'die wild-die' : 'die special';
+          spEl.innerHTML = specialPipHTML(finalSpecial);
         }
       }
     }
@@ -229,14 +259,13 @@ function toggleDie(index) {
 }
 
 function dieSpan(val, cls) {
-  return `<span class="ai-die${cls ? ' ' + cls : ''}">${DICE_DOTS[val]}</span>`;
+  return `<span class="ai-die${cls ? ' ' + cls : ''}">${pipHTML(val)}</span>`;
 }
 
 function spSpan(special) {
   if (special == null) return '';
-  return special === 0
-    ? '<span class="ai-die ai-sp">W</span>'
-    : `<span class="ai-die ai-sp">${DICE_DOTS[special]}</span>`;
+  if (special === 0) return '<span class="ai-die ai-wild"><img src="./img/erpin.png" alt="W"></span>';
+  return `<span class="ai-die ai-sp">${pipHTML(special)}</span>`;
 }
 
 function renderAILog() {
@@ -455,6 +484,18 @@ function animateAITurn(aiLog, callback) {
     diceArea.appendChild(spEl);
   }
 
+  function updateDieEl(el, val, isSpecial) {
+    if (isSpecial && val === 0) {
+      el.className = 'die ai-anim-die wild-die';
+      el.innerHTML = wildHTML();
+    } else if (isSpecial) {
+      el.className = 'die ai-anim-die special';
+      el.innerHTML = pipHTML(val);
+    } else {
+      el.innerHTML = pipHTML(val);
+    }
+  }
+
   // 현재 위치별 주사위 값 (정렬 안 된 상태로 유지)
   // 첫 from(정렬됨)으로 초기화, 이후 리롤 시 해당 위치만 교체
   const slots = new Array(numDice).fill(0);
@@ -465,11 +506,11 @@ function animateAITurn(aiLog, callback) {
   function setSlotValues(sortedDice, special) {
     for (let i = 0; i < numDice; i++) {
       slots[i] = sortedDice[i];
-      diceEls[i].textContent = DICE_DOTS[sortedDice[i]];
+      updateDieEl(diceEls[i], sortedDice[i], false);
     }
     if (spEl && special != null) {
       specialVal = special;
-      spEl.textContent = special === 0 ? 'W' : DICE_DOTS[special];
+      updateDieEl(spEl, special, true);
     }
   }
 
@@ -549,11 +590,11 @@ function animateAITurn(aiLog, callback) {
             let ri = 0;
             for (const pos of rerollPositions) {
               if (frame < totalFrames) {
-                diceEls[pos].textContent = DICE_DOTS[Math.floor(Math.random() * 6) + 1];
+                diceEls[pos].innerHTML = pipHTML(Math.floor(Math.random() * 6) + 1);
               } else {
                 const newVal = newValsForRerolled[ri];
                 slots[pos] = newVal;
-                diceEls[pos].textContent = DICE_DOTS[newVal];
+                updateDieEl(diceEls[pos], newVal, false);
                 diceEls[pos].classList.remove('tumble', 'ai-kept-die');
               }
               ri++;
@@ -882,9 +923,11 @@ function renderRoundAnalysis(record, roundNum) {
     panel.className = 'ra-panel';
 
     // 주사위 표시
-    const diceHtml = pt.dice.map(d => `<span class="ra-die">${DICE_DOTS[d]}</span>`).join('');
+    const diceHtml = pt.dice.map(d => `<span class="ra-die">${pipHTML(d)}</span>`).join('');
     const spHtml = m.hasSpecial && pt.specialDie != null
-      ? `<span class="ra-die ra-sp">${pt.specialDie === 0 ? 'W' : DICE_DOTS[pt.specialDie]}</span>` : '';
+      ? (pt.specialDie === 0
+        ? `<span class="ra-die ra-wild">${wildHTML()}</span>`
+        : `<span class="ra-die ra-sp">${pipHTML(pt.specialDie)}</span>`) : '';
 
     let html = `<div class="ra-panel-header">리롤 ${r}</div>`;
     html += `<div class="ra-dice">${diceHtml}${spHtml}</div>`;
@@ -993,12 +1036,16 @@ function formatActionDesc(act, catNames, pt, m) {
   // 리롤: 킵한 주사위 표시
   const sorted = pt.dice.slice().sort((a, b) => a - b);
   if (m.hasSpecial) {
-    const kept = act.keptNormal.map(i => `<span class="ra-die-sm">${DICE_DOTS[sorted[i]]}</span>`).join('');
-    const sp = act.keepSpecial ? `<span class="ra-die-sm ra-sp">${pt.specialDie === 0 ? 'W' : DICE_DOTS[pt.specialDie]}</span>` : '';
+    const kept = act.keptNormal.map(i => `<span class="ra-die-sm">${pipHTML(sorted[i])}</span>`).join('');
+    const sp = act.keepSpecial
+      ? (pt.specialDie === 0
+        ? `<span class="ra-die-sm ra-wild">${wildHTML()}</span>`
+        : `<span class="ra-die-sm ra-sp">${pipHTML(pt.specialDie)}</span>`)
+      : '';
     const keptStr = kept || sp ? `${kept}${sp}` : '없음';
     return `킵 ${keptStr}`;
   }
-  const kept = act.keptIndices.map(i => `<span class="ra-die-sm">${DICE_DOTS[sorted[i]]}</span>`).join('');
+  const kept = act.keptIndices.map(i => `<span class="ra-die-sm">${pipHTML(sorted[i])}</span>`).join('');
   return `킵 ${kept || '없음'}`;
 }
 

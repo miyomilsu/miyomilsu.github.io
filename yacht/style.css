@@ -161,9 +161,11 @@ body {
 .ai-anim-die {
   width: 52px;
   height: 52px;
-  font-size: 2em;
+  padding: 6px;
   transition: all 0.2s;
 }
+
+.ai-anim-die .pip { width: 8px; height: 8px; }
 
 .ai-anim-die.ai-kept-die {
   border-color: var(--blue);
@@ -192,15 +194,37 @@ body {
 }
 
 .ai-die {
-  display: inline-block;
-  font-size: 1.3em;
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 22px;
+  height: 22px;
+  padding: 2px;
+  background: #EA4E00;
+  border-radius: 4px;
   vertical-align: middle;
   margin: 0 1px;
 }
 
-.ai-die.ai-kept { color: var(--text); }
-.ai-die.ai-dim { color: var(--text-dim); opacity: 0.5; }
-.ai-die.ai-sp { color: var(--green); }
+.ai-die .pip { width: 4px; height: 4px; }
+
+.ai-die.ai-dim { opacity: 0.4; }
+.ai-die.ai-sp { background: #00C340; }
+
+.ai-die.ai-wild {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ai-die.ai-wild img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
 
 /* ── 애니메이션 토글 ── */
 
@@ -239,41 +263,78 @@ body {
 .die {
   width: 64px;
   height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.4em;
-  background: var(--surface);
-  border: 3px solid var(--surface2);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 8px;
+  background: #EA4E00;
+  border: 3px solid rgba(0,0,0,0.15);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.15s;
   user-select: none;
+  box-shadow: 1px 2px 4px rgba(0,0,0,0.3);
 }
 
 .die:hover:not(.locked) {
   border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(233, 69, 96, 0.4);
 }
 
 .die.selected {
-  border-color: var(--accent);
-  background: rgba(233, 69, 96, 0.15);
-  box-shadow: 0 0 12px rgba(233, 69, 96, 0.3);
+  border-color: #fff;
+  box-shadow: 0 0 14px rgba(233, 69, 96, 0.5);
+  filter: brightness(0.7);
 }
 
 .die.special {
-  border-color: var(--green);
-  color: var(--green);
+  background: #00C340;
 }
 
 .die.special.selected {
-  border-color: var(--accent);
-  background: rgba(233, 69, 96, 0.15);
-  box-shadow: 0 0 12px rgba(233, 69, 96, 0.3);
-  color: var(--accent);
+  border-color: #fff;
+  box-shadow: 0 0 14px rgba(233, 69, 96, 0.5);
+  filter: brightness(0.7);
 }
 
-.die.locked { cursor: default; opacity: 0.8; }
+.die.wild-die {
+  background: #00C340;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.die.wild-die img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 9px;
+}
+
+.die.locked { cursor: default; }
+
+/* 주사위 눈 (pip) */
+.pip {
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  align-self: center;
+  justify-self: center;
+}
+
+/* 3x3 그리드에서 pip 배치 */
+.pip.tl { grid-area: 1/1; }
+.pip.tc { grid-area: 1/2; }
+.pip.tr { grid-area: 1/3; }
+.pip.ml { grid-area: 2/1; }
+.pip.mc { grid-area: 2/2; }
+.pip.mr { grid-area: 2/3; }
+.pip.bl { grid-area: 3/1; }
+.pip.bc { grid-area: 3/2; }
+.pip.br { grid-area: 3/3; }
 
 /* ── 컵 애니메이션 ── */
 
@@ -704,20 +765,39 @@ body {
 }
 
 .ra-die {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 48px;
+  height: 48px;
+  padding: 6px;
+  background: #EA4E00;
+  border: 2px solid rgba(0,0,0,0.15);
+  border-radius: 8px;
+  box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+  vertical-align: middle;
+}
+
+.ra-die .pip { width: 8px; height: 8px; }
+
+.ra-die.ra-sp {
+  background: #00C340;
+}
+
+.ra-die.ra-wild {
+  background: #00C340;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  font-size: 1.8em;
-  background: var(--bg);
-  border: 2px solid var(--surface2);
-  border-radius: 8px;
+  padding: 0;
+  overflow: hidden;
 }
 
-.ra-die.ra-sp {
-  border-color: var(--green);
-  color: var(--green);
+.ra-die.ra-wild img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .ra-top-header {
@@ -799,13 +879,36 @@ body {
 .ra-pts { color: var(--text-dim); font-size: 0.9em; }
 
 .ra-die-sm {
-  display: inline-block;
-  font-size: 1.3em;
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 24px;
+  height: 24px;
+  padding: 3px;
+  background: #EA4E00;
+  border-radius: 4px;
   vertical-align: middle;
   margin: 0 1px;
 }
 
-.ra-die-sm.ra-sp { color: var(--green); }
+.ra-die-sm .pip { width: 4px; height: 4px; }
+
+.ra-die-sm.ra-sp { background: #00C340; }
+
+.ra-die-sm.ra-wild {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ra-die-sm.ra-wild img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
 
 .ra-ev {
   text-align: right;
@@ -915,8 +1018,10 @@ body {
 /* ── 반응형 ── */
 
 @media (max-width: 400px) {
-  .die { width: 54px; height: 54px; font-size: 2em; }
+  .die { width: 54px; height: 54px; padding: 7px; }
+  .die .pip { width: 9px; height: 9px; }
   .screen { padding: 12px; }
-  .ra-die { width: 40px; height: 40px; font-size: 1.5em; }
+  .ra-die { width: 40px; height: 40px; padding: 5px; }
+  .ra-die .pip { width: 6px; height: 6px; }
   .ra-action { font-size: 0.9em; padding: 6px 8px; }
 }
