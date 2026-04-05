@@ -789,11 +789,6 @@ function updateRecords() {
 
 function showRules() {
   showScreen('rules');
-  // 에르핀 데모 주사위 pip 채우기
-  for (let v = 2; v <= 6; v++) {
-    const el = $(`erpin-demo-${v}`);
-    if (el && !el.querySelector('.pip')) el.innerHTML = pipHTML(v);
-  }
   const tabs = document.querySelectorAll('.rules-tab');
   tabs.forEach(tab => {
     tab.onclick = () => {

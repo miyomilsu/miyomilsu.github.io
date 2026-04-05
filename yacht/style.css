@@ -186,26 +186,11 @@ body {
   margin: 12px 0;
 }
 
-.erpin-dice-row {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
 .erpin-demo {
-  width: 44px;
-  height: 44px;
-  padding: 5px;
+  width: 56px;
+  height: 56px;
   cursor: default;
-}
-
-.erpin-demo .pip { width: 6px; height: 6px; }
-
-.erpin-labels {
-  font-size: 0.75em;
-  color: var(--text-dim);
-  letter-spacing: 0.15em;
+  display: inline-flex;
 }
 
 /* ── 로딩 ── */
