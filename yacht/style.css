@@ -83,7 +83,7 @@ body {
 
 .menu-btn.standard { background: linear-gradient(135deg, var(--blue), var(--surface2)); }
 .menu-btn.trickal { background: linear-gradient(135deg, var(--green), #1a8a4a); }
-.menu-btn.history { background: linear-gradient(135deg, var(--accent2), var(--surface2)); }
+.menu-btn.history { background: linear-gradient(135deg, #7c5cbf, var(--accent2)); }
 
 .mode-desc {
   font-size: 0.65em;
