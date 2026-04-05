@@ -791,12 +791,11 @@ function backToMenu() {
 
 function updateRecords() {
   const r = Game.getRecords();
-  const el = $('menu-records');
+  const sub = $('menu-records-sub');
   if (r.gamesPlayed > 0) {
-    el.textContent = `${r.wins}승 ${r.losses}패 ${r.draws}무 | 최고: ${r.highScore}`;
-    el.classList.remove('hidden');
+    sub.textContent = `${r.wins}승 ${r.losses}패 ${r.draws}무 | 최고: ${r.highScore}`;
   } else {
-    el.classList.add('hidden');
+    sub.textContent = '';
   }
 }
 

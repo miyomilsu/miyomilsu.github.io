@@ -83,17 +83,12 @@ body {
 
 .menu-btn.standard { background: linear-gradient(135deg, var(--blue), var(--surface2)); }
 .menu-btn.trickal { background: linear-gradient(135deg, var(--green), #1a8a4a); }
+.menu-btn.history { background: linear-gradient(135deg, var(--accent2), var(--surface2)); }
 
 .mode-desc {
   font-size: 0.65em;
   font-weight: 400;
   opacity: 0.8;
-}
-
-.menu-links {
-  display: flex;
-  gap: 16px;
-  margin-top: 12px;
 }
 
 .records {
@@ -314,6 +309,7 @@ body {
   justify-content: center;
   padding: 0;
   overflow: hidden;
+  background: #00C340;
 }
 
 .ai-die.ai-wild img {
@@ -1076,6 +1072,7 @@ body {
   justify-content: center;
   padding: 0;
   overflow: hidden;
+  background: #00C340;
 }
 
 .ra-die-sm.ra-wild img {
