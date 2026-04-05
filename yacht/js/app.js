@@ -340,8 +340,8 @@ function renderCategorySelect() {
   for (const c of available) {
     const score = Game.getScore(game, c, sorted);
     const btn = document.createElement('button');
-    btn.className = 'category-btn' + (score === 0 ? ' zero' : '');
-    btn.innerHTML = `<span class="cat-name">${catNames[c]}<span class="cat-tip">${tips[c]}</span></span><span class="cat-score">${score}</span>`;
+    btn.className = 'category-btn has-tooltip' + (score === 0 ? ' zero' : '');
+    btn.innerHTML = `<span class="cat-name">${catNames[c]}</span><span class="cat-score">${score}</span><span class="tooltip">${tips[c]}</span>`;
     btn.addEventListener('click', () => doAssign(c));
     container.appendChild(btn);
   }
@@ -359,37 +359,36 @@ function renderCategorySelect() {
 function renderScoreboard() {
   const m = Game.MODE[game.mode];
   const catNames = m.scoring.CATEGORY_NAMES;
+  const tips = CAT_TIPS[game.mode] || CAT_TIPS.standard;
   const tbody = $('scoreboard-body');
   tbody.innerHTML = '';
 
-  // 상체
   for (let c = 0; c < m.upperCount; c++) {
-    addScoreRow(tbody, catNames[c], game.pScores[c], game.aScores[c]);
+    addScoreRow(tbody, catNames[c], game.pScores[c], game.aScores[c], false, tips[c]);
   }
 
-  // 상체 소계 + 보너스
   const pUS = game.pScores.slice(0, m.upperCount).reduce((a, s) => a + (s >= 0 ? s : 0), 0);
   const aUS = game.aScores.slice(0, m.upperCount).reduce((a, s) => a + (s >= 0 ? s : 0), 0);
   const pB = game.pUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${pUS}/${m.upperThreshold}`;
   const aB = game.aUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${aUS}/${m.upperThreshold}`;
   addScoreRow(tbody, '보너스', pB, aB, true);
 
-  // 하체
   for (let c = m.upperCount; c < m.numCat; c++) {
-    addScoreRow(tbody, catNames[c], game.pScores[c], game.aScores[c]);
+    addScoreRow(tbody, catNames[c], game.pScores[c], game.aScores[c], false, tips[c]);
   }
 
-  // 총점
   const { pT, aT } = Game.calcTotal(game);
   addScoreRow(tbody, '합계', pT, aT, true);
 }
 
-function addScoreRow(tbody, name, pVal, aVal, isSpecial = false) {
+function addScoreRow(tbody, name, pVal, aVal, isSpecial = false, tip = null) {
   const tr = document.createElement('tr');
   if (isSpecial) tr.className = 'special-row';
+  if (tip) tr.className = (tr.className ? tr.className + ' ' : '') + 'has-tooltip';
   const fmtP = typeof pVal === 'string' ? pVal : (pVal < 0 ? '-' : pVal);
   const fmtA = typeof aVal === 'string' ? aVal : (aVal < 0 ? '-' : aVal);
-  tr.innerHTML = `<td>${name}</td><td>${fmtP}</td><td>${fmtA}</td>`;
+  const tipHtml = tip ? `<span class="tooltip">${tip}</span>` : '';
+  tr.innerHTML = `<td>${name}${tipHtml}</td><td>${fmtP}</td><td>${fmtA}</td>`;
   tbody.appendChild(tr);
 }
 

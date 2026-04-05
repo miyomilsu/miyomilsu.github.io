@@ -539,21 +539,54 @@ body {
   margin-top: 4px;
 }
 
-.cat-name {
-  font-weight: 500;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.cat-tip {
-  font-size: 0.75em;
-  font-weight: 400;
-  color: var(--text-dim);
-  margin-top: 1px;
-}
-
+.cat-name { font-weight: 500; }
 .cat-score { font-weight: 700; font-size: 1.1em; color: var(--gold); }
+
+/* ── 툴팁 (공용) ── */
+
+.has-tooltip {
+  position: relative;
+}
+
+.tooltip {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  background: #222;
+  color: #eee;
+  font-size: 0.8em;
+  font-weight: 400;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 16px;
+  border: 5px solid transparent;
+  border-top-color: #222;
+}
+
+.has-tooltip:hover .tooltip {
+  display: block;
+}
+
+/* 스코어보드 행 — td가 tooltip 컨테이너 */
+.scoreboard tr.has-tooltip td:first-child {
+  position: relative;
+}
+
+.scoreboard tr.has-tooltip:hover td:first-child .tooltip {
+  display: block;
+}
 
 /* ── 스코어보드 ── */
 
