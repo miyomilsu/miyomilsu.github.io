@@ -188,10 +188,9 @@ function animateRoll(rolledIndices, callback) {
   const SPECIAL_VALS = [0, 2, 3, 4, 5, 6];
 
   let frame = 0;
-  const totalFrames = 12;
+  const totalFrames = 6;
   const interval = setInterval(() => {
     frame++;
-    // 주사위 요소 업데이트 (컵/tumble 클래스는 유지)
     const dice = container.querySelectorAll('.die:not(.special)');
     dice.forEach((el, i) => {
       if (rolledIndices.has(i)) {
@@ -220,7 +219,7 @@ function animateRoll(rolledIndices, callback) {
       animating = false;
       callback();
     }
-  }, 50);
+  }, 40);
 }
 
 function toggleDie(index) {
@@ -440,7 +439,7 @@ function animateAITurn(aiLog, callback) {
 
   function showStep() {
     if (stepIdx >= aiLog.length) {
-      setTimeout(callback, 400);
+      setTimeout(callback, 300);
       return;
     }
 
@@ -452,30 +451,30 @@ function animateAITurn(aiLog, callback) {
       stepText.textContent = '';
 
       setTimeout(() => {
-        // 킵 표시
+        // 킵 표시 — 충분히 오래 보여줌
         highlightKept(diceArea, entry.from, entry.kept, m);
         const keptStr = entry.kept.length ? entry.kept.map(d => DICE_DOTS[d]).join('') : '없음';
         stepText.textContent = `킵 ${keptStr} → 리롤`;
 
         setTimeout(() => {
-          // 리롤 결과 (값 랜덤하다 정착)
+          // 스크램블은 짧게, 결과 보여주는 시간 길게
           const resultDice = entry.to;
           scrambleAIDice(diceArea, entry.kept, resultDice, entry.special, m, () => {
             stepIdx++;
-            setTimeout(showStep, 300);
+            setTimeout(showStep, 800);
           });
-        }, 500);
-      }, 400);
+        }, 700);
+      }, 600);
 
     } else if (entry.type === 'assign') {
-      // 최종 주사위 + 배정
+      // 최종 주사위 + 배정 — 결과를 충분히 보여줌
       renderAIDice(diceArea, entry.dice, entry.special, m);
 
       setTimeout(() => {
         stepText.innerHTML = `\u2192 <strong>${catNames[entry.cat]}</strong> ${entry.score}점`;
         stepIdx++;
-        setTimeout(showStep, 600);
-      }, 300);
+        setTimeout(showStep, 1000);
+      }, 400);
     }
   }
 
@@ -528,7 +527,7 @@ function scrambleAIDice(container, kept, resultDice, special, m, callback) {
   });
 
   let frame = 0;
-  const totalFrames = 10;
+  const totalFrames = 6;
   const interval = setInterval(() => {
     frame++;
     dice.forEach((el, i) => {
@@ -545,7 +544,7 @@ function scrambleAIDice(container, kept, resultDice, special, m, callback) {
       clearInterval(interval);
       callback();
     }
-  }, 50);
+  }, 40);
 }
 
 // ── 게임 종료 ──
