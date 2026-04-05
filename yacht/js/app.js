@@ -10,6 +10,8 @@ const DICE_EMOJI = ['', '1', '2', '3', '4', '5', '6'];
 let game = null;
 let phase = 'menu';
 let selectedDice = new Set();
+let animEnabled = localStorage.getItem('yacht-anim') !== 'off';
+let animating = false;
 
 // ── DOM refs ──
 const $ = id => document.getElementById(id);
@@ -34,6 +36,8 @@ export async function init() {
   $('btn-history-back').addEventListener('click', backToMenu);
   $('btn-detail-back').addEventListener('click', showHistory);
   $('btn-ra-back').addEventListener('click', () => { if (currentRecord) showDetail(currentRecord.id); });
+  $('btn-anim-toggle').addEventListener('click', toggleAnim);
+  updateAnimBtn();
   updateRecords();
 }
 
@@ -59,12 +63,16 @@ async function startGame(mode) {
   phase = 'rolling';
   selectedDice.clear();
   showScreen('game');
-  renderGame();
+  // 첫 굴림은 전체 주사위 애니메이션
+  const m = Game.MODE[mode];
+  const allIndices = new Set(m.hasSpecial ? [0,1,2,3,4] : [0,1,2,3,4]);
+  renderGame(allIndices);
+  animateRoll(allIndices, () => renderGame());
 }
 
 // ── 렌더링 ──
 
-function renderGame() {
+function renderGame(rollIndices) {
   const m = Game.MODE[game.mode];
   const catNames = m.scoring.CATEGORY_NAMES;
 
@@ -77,7 +85,7 @@ function renderGame() {
   renderAILog();
 
   // 주사위
-  renderDice();
+  renderDice(rollIndices);
 
   // 버튼 상태
   $('btn-reroll').disabled = game.rerolls <= 0 || phase === 'assigning';
@@ -92,18 +100,43 @@ function renderGame() {
   renderScoreboard();
 }
 
-function renderDice() {
+function toggleAnim() {
+  animEnabled = !animEnabled;
+  localStorage.setItem('yacht-anim', animEnabled ? 'on' : 'off');
+  updateAnimBtn();
+}
+
+function updateAnimBtn() {
+  $('btn-anim-toggle').textContent = animEnabled ? '🎬 ON' : '🎬 OFF';
+  $('btn-anim-toggle').classList.toggle('anim-off', !animEnabled);
+}
+
+function renderDice(rollIndices) {
   const container = $('dice-container');
   container.innerHTML = '';
   const m = Game.MODE[game.mode];
 
+  // 컵 (애니메이션 시에만)
+  const showCup = animEnabled && rollIndices && rollIndices.size > 0;
+  if (showCup) {
+    const cup = document.createElement('div');
+    cup.className = 'dice-cup tipping';
+    cup.innerHTML = '<div class="cup-body"></div>';
+    container.appendChild(cup);
+  }
+
   game.dice.forEach((val, i) => {
     const die = document.createElement('div');
+    const isRolled = rollIndices && rollIndices.has(i);
     die.className = 'die' + (selectedDice.has(i) ? ' selected' : '');
+    if (showCup && isRolled) die.classList.add('tumble');
+    die.style.animationDelay = isRolled ? `${0.15 + i * 0.08}s` : '0s';
     die.textContent = DICE_DOTS[val];
     die.dataset.index = i;
-    if (phase === 'rolling' && game.rerolls > 0) {
+    if (phase === 'rolling' && game.rerolls > 0 && !animating) {
       die.addEventListener('click', () => toggleDie(i));
+    } else if (animating) {
+      die.classList.add('locked');
     } else {
       die.classList.add('locked');
     }
@@ -113,16 +146,69 @@ function renderDice() {
   if (m.hasSpecial) {
     const sp = document.createElement('div');
     const isWild = game.specialDie === 0;
+    const isRolled = rollIndices && rollIndices.has(4);
     sp.className = 'die special' + (selectedDice.has(4) ? ' selected' : '');
+    if (showCup && isRolled) sp.classList.add('tumble');
+    sp.style.animationDelay = isRolled ? `${0.15 + 4 * 0.08}s` : '0s';
     sp.textContent = isWild ? 'W' : DICE_DOTS[game.specialDie];
     sp.dataset.index = 4;
-    if (phase === 'rolling' && game.rerolls > 0) {
+    if (phase === 'rolling' && game.rerolls > 0 && !animating) {
       sp.addEventListener('click', () => toggleDie(4));
     } else {
       sp.classList.add('locked');
     }
     container.appendChild(sp);
   }
+}
+
+/** 주사위 값 빠르게 바꾸다 최종값으로 정착하는 애니메이션 */
+function animateRoll(rolledIndices, callback) {
+  if (!animEnabled || rolledIndices.size === 0) {
+    callback();
+    return;
+  }
+
+  animating = true;
+  const m = Game.MODE[game.mode];
+  const finalDice = [...game.dice];
+  const finalSpecial = m.hasSpecial ? game.specialDie : null;
+  const container = $('dice-container');
+  const SPECIAL_VALS = [0, 2, 3, 4, 5, 6];
+
+  let frame = 0;
+  const totalFrames = 12;
+  const interval = setInterval(() => {
+    frame++;
+    // 주사위 요소 업데이트 (컵/tumble 클래스는 유지)
+    const dice = container.querySelectorAll('.die:not(.special)');
+    dice.forEach((el, i) => {
+      if (rolledIndices.has(i)) {
+        if (frame < totalFrames) {
+          el.textContent = DICE_DOTS[Math.floor(Math.random() * 6) + 1];
+        } else {
+          el.textContent = DICE_DOTS[finalDice[i]];
+        }
+      }
+    });
+
+    if (m.hasSpecial && rolledIndices.has(4)) {
+      const spEl = container.querySelector('.die.special');
+      if (spEl) {
+        if (frame < totalFrames) {
+          const rv = SPECIAL_VALS[Math.floor(Math.random() * 6)];
+          spEl.textContent = rv === 0 ? 'W' : DICE_DOTS[rv];
+        } else {
+          spEl.textContent = finalSpecial === 0 ? 'W' : DICE_DOTS[finalSpecial];
+        }
+      }
+    }
+
+    if (frame >= totalFrames) {
+      clearInterval(interval);
+      animating = false;
+      callback();
+    }
+  }, 50);
 }
 
 function toggleDie(index) {
@@ -279,8 +365,10 @@ function doReroll() {
 
   game.rerolls--;
   Game.logReroll(game, [...selectedDice]);
+  const rolledSet = new Set(selectedDice);
   selectedDice.clear();
-  renderGame();
+  renderGame(rolledSet);
+  animateRoll(rolledSet, () => renderGame());
 }
 
 function showAssignUI() {
@@ -302,7 +390,10 @@ function doAssign(cat) {
   } else {
     phase = 'rolling';
     selectedDice.clear();
-    renderGame();
+    const m = Game.MODE[game.mode];
+    const allIndices = new Set(m.hasSpecial ? [0,1,2,3,4] : [0,1,2,3,4]);
+    renderGame(allIndices);
+    animateRoll(allIndices, () => renderGame());
   }
 }
 
