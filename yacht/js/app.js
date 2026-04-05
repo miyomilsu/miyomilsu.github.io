@@ -35,6 +35,27 @@ function specialPipHTML(val) {
 // 이전 호환용 (텍스트 전용 컨텍스트)
 const DICE_DOTS = ['', '\u2680', '\u2681', '\u2682', '\u2683', '\u2684', '\u2685'];
 
+// 족보 한줄 설명 (tooltip)
+const CAT_TIPS = {
+  standard: [
+    '1의 눈 합산', '2의 눈 합산', '3의 눈 합산',
+    '4의 눈 합산', '5의 눈 합산', '6의 눈 합산',
+    '주사위 합계 (제한 없음)',
+    '같은 눈 4개 이상 → 합계',
+    '3개+2개 (또는 5개 동일) → 합계',
+    '연속 4개 → 15점',
+    '연속 5개 → 30점',
+    '5개 모두 동일 → 50점',
+  ],
+  trickal: [
+    '2의 눈 합산', '3의 눈 합산', '4의 눈 합산',
+    '5의 눈 합산', '6의 눈 합산',
+    '3개+2개 → 합계 (5개 동일 불인정)',
+    '연속 5개 → 30점',
+    '5개 모두 동일 → 50점',
+  ],
+};
+
 let game = null;
 let phase = 'menu';
 let selectedDice = new Set();
@@ -315,11 +336,12 @@ function renderCategorySelect() {
   const available = Game.getAvailable(game);
   const { sorted } = Game.getDiceIdx(game);
 
+  const tips = CAT_TIPS[game.mode] || CAT_TIPS.standard;
   for (const c of available) {
     const score = Game.getScore(game, c, sorted);
     const btn = document.createElement('button');
     btn.className = 'category-btn' + (score === 0 ? ' zero' : '');
-    btn.innerHTML = `<span class="cat-name">${catNames[c]}</span><span class="cat-score">${score}</span>`;
+    btn.innerHTML = `<span class="cat-name">${catNames[c]}<span class="cat-tip">${tips[c]}</span></span><span class="cat-score">${score}</span>`;
     btn.addEventListener('click', () => doAssign(c));
     container.appendChild(btn);
   }
@@ -767,6 +789,11 @@ function updateRecords() {
 
 function showRules() {
   showScreen('rules');
+  // 에르핀 데모 주사위 pip 채우기
+  for (let v = 2; v <= 6; v++) {
+    const el = $(`erpin-demo-${v}`);
+    if (el && !el.querySelector('.pip')) el.innerHTML = pipHTML(v);
+  }
   const tabs = document.querySelectorAll('.rules-tab');
   tabs.forEach(tab => {
     tab.onclick = () => {
