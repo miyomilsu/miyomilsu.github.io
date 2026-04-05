@@ -10,7 +10,8 @@ const DICE_EMOJI = ['', '1', '2', '3', '4', '5', '6'];
 let game = null;
 let phase = 'menu';
 let selectedDice = new Set();
-let animEnabled = localStorage.getItem('yacht-anim') !== 'off';
+let animPlayer = localStorage.getItem('yacht-anim-player') !== 'off';
+let animAI = localStorage.getItem('yacht-anim-ai') !== 'off';
 let animating = false;
 
 // ── DOM refs ──
@@ -36,8 +37,9 @@ export async function init() {
   $('btn-history-back').addEventListener('click', backToMenu);
   $('btn-detail-back').addEventListener('click', showHistory);
   $('btn-ra-back').addEventListener('click', () => { if (currentRecord) showDetail(currentRecord.id); });
-  $('btn-anim-toggle').addEventListener('click', toggleAnim);
-  updateAnimBtn();
+  $('btn-anim-player').addEventListener('click', () => toggleAnim('player'));
+  $('btn-anim-ai').addEventListener('click', () => toggleAnim('ai'));
+  updateAnimBtns();
   updateRecords();
 }
 
@@ -88,8 +90,9 @@ function renderGame(rollIndices) {
   renderDice(rollIndices);
 
   // 버튼 상태
-  $('btn-reroll').disabled = game.rerolls <= 0 || phase === 'assigning';
-  $('btn-assign').disabled = phase === 'assigning';
+  const locked = phase === 'assigning' || animating;
+  $('btn-reroll').disabled = game.rerolls <= 0 || locked;
+  $('btn-assign').disabled = locked;
   $('btn-reroll').classList.toggle('hidden', phase === 'assigning');
   $('btn-assign').classList.toggle('hidden', phase === 'assigning');
 
@@ -100,15 +103,24 @@ function renderGame(rollIndices) {
   renderScoreboard();
 }
 
-function toggleAnim() {
-  animEnabled = !animEnabled;
-  localStorage.setItem('yacht-anim', animEnabled ? 'on' : 'off');
-  updateAnimBtn();
+function toggleAnim(who) {
+  if (who === 'player') {
+    animPlayer = !animPlayer;
+    localStorage.setItem('yacht-anim-player', animPlayer ? 'on' : 'off');
+  } else {
+    animAI = !animAI;
+    localStorage.setItem('yacht-anim-ai', animAI ? 'on' : 'off');
+  }
+  updateAnimBtns();
 }
 
-function updateAnimBtn() {
-  $('btn-anim-toggle').textContent = animEnabled ? '🎬 ON' : '🎬 OFF';
-  $('btn-anim-toggle').classList.toggle('anim-off', !animEnabled);
+function updateAnimBtns() {
+  const p = $('btn-anim-player');
+  const a = $('btn-anim-ai');
+  p.textContent = `🎬나 ${animPlayer ? 'ON' : 'OFF'}`;
+  a.textContent = `🤖AI ${animAI ? 'ON' : 'OFF'}`;
+  p.classList.toggle('anim-off', !animPlayer);
+  a.classList.toggle('anim-off', !animAI);
 }
 
 function renderDice(rollIndices) {
@@ -117,7 +129,7 @@ function renderDice(rollIndices) {
   const m = Game.MODE[game.mode];
 
   // 컵 (애니메이션 시에만)
-  const showCup = animEnabled && rollIndices && rollIndices.size > 0;
+  const showCup = animPlayer && rollIndices && rollIndices.size > 0;
   if (showCup) {
     const cup = document.createElement('div');
     cup.className = 'dice-cup tipping';
@@ -163,7 +175,7 @@ function renderDice(rollIndices) {
 
 /** 주사위 값 빠르게 바꾸다 최종값으로 정착하는 애니메이션 */
 function animateRoll(rolledIndices, callback) {
-  if (!animEnabled || rolledIndices.size === 0) {
+  if (!animPlayer || rolledIndices.size === 0) {
     callback();
     return;
   }
@@ -383,8 +395,25 @@ function doAssign(cat) {
   Game.logAssign(game, cat, score);
   Game.playAI(game);
   Game.logAI(game);
-  Game.nextRound(game);
 
+  // AI 턴 애니메이션
+  if (animAI && game.aiLog && game.aiLog.length > 0) {
+    phase = 'ai-playing';
+    animating = true;
+    renderScoreboard(); // 플레이어 배정 즉시 반영
+    animateAITurn(game.aiLog, () => {
+      Game.nextRound(game);
+      finishRound();
+    });
+  } else {
+    Game.nextRound(game);
+    finishRound();
+  }
+}
+
+function finishRound() {
+  animating = false;
+  $('ai-turn').classList.add('hidden');
   if (Game.isGameOver(game)) {
     showGameOver();
   } else {
@@ -395,6 +424,128 @@ function doAssign(cat) {
     renderGame(allIndices);
     animateRoll(allIndices, () => renderGame());
   }
+}
+
+/** AI 턴을 주사위 애니메이션으로 단계별 재생 */
+function animateAITurn(aiLog, callback) {
+  const m = Game.MODE[game.mode];
+  const catNames = m.scoring.CATEGORY_NAMES;
+  const aiTurn = $('ai-turn');
+  aiTurn.classList.remove('hidden');
+  aiTurn.innerHTML = '<div class="ai-turn-label">\uD83E\uDD16 AI 턴</div><div id="ai-dice-area" class="ai-dice-area"></div><div id="ai-step-text" class="ai-step-text"></div>';
+
+  const diceArea = $('ai-dice-area');
+  const stepText = $('ai-step-text');
+  let stepIdx = 0;
+
+  function showStep() {
+    if (stepIdx >= aiLog.length) {
+      setTimeout(callback, 400);
+      return;
+    }
+
+    const entry = aiLog[stepIdx];
+
+    if (entry.type === 'reroll') {
+      // 초기 주사위 보여주기
+      renderAIDice(diceArea, entry.from, entry.special, m);
+      stepText.textContent = '';
+
+      setTimeout(() => {
+        // 킵 표시
+        highlightKept(diceArea, entry.from, entry.kept, m);
+        const keptStr = entry.kept.length ? entry.kept.map(d => DICE_DOTS[d]).join('') : '없음';
+        stepText.textContent = `킵 ${keptStr} → 리롤`;
+
+        setTimeout(() => {
+          // 리롤 결과 (값 랜덤하다 정착)
+          const resultDice = entry.to;
+          scrambleAIDice(diceArea, entry.kept, resultDice, entry.special, m, () => {
+            stepIdx++;
+            setTimeout(showStep, 300);
+          });
+        }, 500);
+      }, 400);
+
+    } else if (entry.type === 'assign') {
+      // 최종 주사위 + 배정
+      renderAIDice(diceArea, entry.dice, entry.special, m);
+
+      setTimeout(() => {
+        stepText.innerHTML = `\u2192 <strong>${catNames[entry.cat]}</strong> ${entry.score}점`;
+        stepIdx++;
+        setTimeout(showStep, 600);
+      }, 300);
+    }
+  }
+
+  showStep();
+}
+
+function renderAIDice(container, dice, special, m) {
+  container.innerHTML = '';
+  dice.forEach(val => {
+    const die = document.createElement('div');
+    die.className = 'die ai-anim-die';
+    die.textContent = DICE_DOTS[val];
+    container.appendChild(die);
+  });
+  if (m.hasSpecial && special != null) {
+    const sp = document.createElement('div');
+    sp.className = 'die ai-anim-die special';
+    sp.textContent = special === 0 ? 'W' : DICE_DOTS[special];
+    container.appendChild(sp);
+  }
+}
+
+function highlightKept(container, from, kept, m) {
+  const dice = container.querySelectorAll('.ai-anim-die:not(.special)');
+  const usedKept = new Array(kept.length).fill(false);
+  dice.forEach((el, i) => {
+    let isKept = false;
+    for (let k = 0; k < kept.length; k++) {
+      if (!usedKept[k] && kept[k] === from[i]) {
+        usedKept[k] = true;
+        isKept = true;
+        break;
+      }
+    }
+    el.classList.toggle('ai-kept-die', isKept);
+    el.classList.toggle('ai-reroll-die', !isKept);
+  });
+}
+
+function scrambleAIDice(container, kept, resultDice, special, m, callback) {
+  const dice = container.querySelectorAll('.ai-anim-die:not(.special)');
+
+  // ai-reroll-die는 highlightKept에서 이미 설정됨
+  dice.forEach(el => {
+    if (el.classList.contains('ai-reroll-die')) {
+      el.classList.remove('ai-reroll-die');
+      el.classList.add('tumble');
+      el.style.opacity = '1';
+    }
+  });
+
+  let frame = 0;
+  const totalFrames = 10;
+  const interval = setInterval(() => {
+    frame++;
+    dice.forEach((el, i) => {
+      if (el.classList.contains('tumble')) {
+        if (frame < totalFrames) {
+          el.textContent = DICE_DOTS[Math.floor(Math.random() * 6) + 1];
+        } else {
+          el.textContent = DICE_DOTS[resultDice[i]];
+          el.classList.remove('tumble', 'ai-kept-die');
+        }
+      }
+    });
+    if (frame >= totalFrames) {
+      clearInterval(interval);
+      callback();
+    }
+  }, 50);
 }
 
 // ── 게임 종료 ──

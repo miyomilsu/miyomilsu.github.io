@@ -132,6 +132,55 @@ body {
 
 #game-mode { font-weight: 700; font-size: 1.1em; }
 
+/* ── AI 턴 애니메이션 ── */
+
+.ai-turn {
+  background: var(--surface);
+  border: 2px solid var(--surface2);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.ai-turn-label {
+  font-weight: 700;
+  font-size: 1em;
+  margin-bottom: 10px;
+  color: var(--text-dim);
+}
+
+.ai-dice-area {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  min-height: 56px;
+}
+
+.ai-anim-die {
+  width: 52px;
+  height: 52px;
+  font-size: 2em;
+  transition: all 0.2s;
+}
+
+.ai-anim-die.ai-kept-die {
+  border-color: var(--blue);
+  background: rgba(52, 152, 219, 0.15);
+}
+
+.ai-anim-die.ai-reroll-die {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+.ai-step-text {
+  font-size: 1em;
+  color: var(--text-dim);
+  min-height: 1.5em;
+}
+
 .ai-log {
   background: var(--surface);
   border-radius: 8px;
@@ -155,15 +204,21 @@ body {
 
 /* ── 애니메이션 토글 ── */
 
+.anim-toggles {
+  display: flex;
+  gap: 4px;
+}
+
 .anim-toggle-btn {
   background: var(--surface);
   border: 1px solid var(--surface2);
   color: var(--text);
   border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 0.75em;
+  padding: 2px 6px;
+  font-size: 0.7em;
   cursor: pointer;
   transition: opacity 0.15s;
+  white-space: nowrap;
 }
 
 .anim-toggle-btn.anim-off { opacity: 0.4; }
