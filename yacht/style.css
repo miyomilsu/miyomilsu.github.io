@@ -70,6 +70,7 @@ body {
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
   color: white;
+  background: var(--surface2);
   display: flex;
   flex-direction: column;
   align-items: center;
