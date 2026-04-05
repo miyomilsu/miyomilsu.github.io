@@ -16,7 +16,81 @@
       <button id="btn-trickal" class="menu-btn trickal">Trickal<span class="mode-desc">8족보 + 에르핀</span></button>
     </div>
     <div id="menu-records" class="records hidden"></div>
-    <button id="btn-history" class="history-link">전적 기록</button>
+    <div class="menu-links">
+      <button id="btn-rules" class="history-link">규칙 설명</button>
+      <button id="btn-history" class="history-link">전적 기록</button>
+    </div>
+  </div>
+
+  <!-- 규칙 -->
+  <div id="rules-screen" class="screen hidden">
+    <div class="screen-header">
+      <button id="btn-rules-back" class="back-btn">&larr;</button>
+      <h2>규칙 설명</h2>
+    </div>
+    <div class="rules-tabs">
+      <button class="rules-tab active" data-tab="std">Standard</button>
+      <button class="rules-tab" data-tab="tk">Trickal</button>
+    </div>
+
+    <div id="rules-std" class="rules-content">
+      <h3>개요</h3>
+      <p>주사위 5개를 굴려 12개 족보에 점수를 채워넣는 게임입니다. 매 라운드 최대 2번 리롤할 수 있으며, 원하는 주사위만 골라서 다시 굴릴 수 있습니다.</p>
+
+      <h3>상체 (Upper Section)</h3>
+      <table class="rules-table">
+        <tr><td>Aces</td><td>1의 눈 합산</td></tr>
+        <tr><td>Twos</td><td>2의 눈 합산</td></tr>
+        <tr><td>Threes</td><td>3의 눈 합산</td></tr>
+        <tr><td>Fours</td><td>4의 눈 합산</td></tr>
+        <tr><td>Fives</td><td>5의 눈 합산</td></tr>
+        <tr><td>Sixes</td><td>6의 눈 합산</td></tr>
+      </table>
+      <p class="rules-note">상체 합계가 63 이상이면 보너스 +35점</p>
+
+      <h3>하체 (Lower Section)</h3>
+      <table class="rules-table">
+        <tr><td>Choice</td><td>주사위 합계 (제한 없음)</td></tr>
+        <tr><td>Four of a Kind</td><td>같은 눈 4개 이상 → 주사위 합계, 아니면 0</td></tr>
+        <tr><td>Full House</td><td>3개+2개 조합 (또는 5개 동일) → 주사위 합계, 아니면 0</td></tr>
+        <tr><td>Small Straight</td><td>연속 4개 (예: 1-2-3-4) → 15점, 아니면 0</td></tr>
+        <tr><td>Large Straight</td><td>연속 5개 (1-2-3-4-5 또는 2-3-4-5-6) → 30점, 아니면 0</td></tr>
+        <tr><td>Yacht</td><td>5개 모두 같은 눈 → 50점, 아니면 0</td></tr>
+      </table>
+
+      <h3>진행</h3>
+      <p>12라운드 동안 플레이어와 AI가 번갈아 주사위를 굴립니다. 각 족보에는 한 번만 점수를 넣을 수 있으며, 모든 족보를 채우면 게임이 끝납니다.</p>
+    </div>
+
+    <div id="rules-tk" class="rules-content hidden">
+      <h3>개요</h3>
+      <p>Standard의 변형 규칙입니다. 일반 주사위 4개 + 에르핀(특수) 주사위 1개를 사용하며, 족보가 8개로 줄어듭니다.</p>
+
+      <h3>에르핀 주사위</h3>
+      <p>초록색 특수 주사위로, 2~6 또는 <strong>와일드(W)</strong>가 나옵니다. 와일드는 점수 계산 시 가장 유리한 값으로 자동 배정됩니다. 에르핀 주사위도 리롤 대상으로 선택할 수 있습니다.</p>
+
+      <h3>상체 (Upper Section)</h3>
+      <table class="rules-table">
+        <tr><td>Twos</td><td>2의 눈 합산</td></tr>
+        <tr><td>Threes</td><td>3의 눈 합산</td></tr>
+        <tr><td>Fours</td><td>4의 눈 합산</td></tr>
+        <tr><td>Fives</td><td>5의 눈 합산</td></tr>
+        <tr><td>Sixes</td><td>6의 눈 합산</td></tr>
+      </table>
+      <p class="rules-note">상체 합계가 55 이상이면 보너스 +40점</p>
+      <p class="rules-note">Aces가 없으므로 와일드가 1로 배정되는 경우는 Straight 등 특수 족보에서만 발생합니다.</p>
+
+      <h3>하체 (Lower Section)</h3>
+      <table class="rules-table">
+        <tr><td>Full House</td><td>3개+2개 조합 → 주사위 합계, 아니면 0<br><span class="rules-diff">Standard와 달리 5개 동일은 인정되지 않음</span></td></tr>
+        <tr><td>Straight</td><td>연속 5개 (1-2-3-4-5 또는 2-3-4-5-6) → 30점, 아니면 0</td></tr>
+        <tr><td>Yacht</td><td>5개 모두 같은 눈 → 50점, 아니면 0</td></tr>
+      </table>
+      <p class="rules-note">Choice, Four of a Kind, Small Straight가 없습니다.</p>
+
+      <h3>진행</h3>
+      <p>8라운드 동안 진행됩니다. 그 외 규칙은 Standard와 동일합니다.</p>
+    </div>
   </div>
 
   <!-- 로딩 -->

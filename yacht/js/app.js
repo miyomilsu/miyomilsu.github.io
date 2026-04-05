@@ -52,6 +52,7 @@ const loadingScreen = $('loading-screen');
 const historyScreen = $('history-screen');
 const detailScreen = $('detail-screen');
 const roundAnalysisScreen = $('round-analysis-screen');
+const rulesScreen = $('rules-screen');
 
 // ── 초기화 ──
 
@@ -62,6 +63,8 @@ export async function init() {
   $('btn-reroll').addEventListener('click', doReroll);
   $('btn-assign').addEventListener('click', showAssignUI);
   $('btn-new-game').addEventListener('click', backToMenu);
+  $('btn-rules').addEventListener('click', showRules);
+  $('btn-rules-back').addEventListener('click', backToMenu);
   $('btn-history-back').addEventListener('click', backToMenu);
   $('btn-detail-back').addEventListener('click', showHistory);
   $('btn-ra-back').addEventListener('click', () => { if (currentRecord) showDetail(currentRecord.id); });
@@ -76,6 +79,7 @@ function showScreen(name) {
   gameScreen.classList.toggle('hidden', name !== 'game');
   overScreen.classList.toggle('hidden', name !== 'over');
   loadingScreen.classList.toggle('hidden', name !== 'loading');
+  rulesScreen.classList.toggle('hidden', name !== 'rules');
   historyScreen.classList.toggle('hidden', name !== 'history');
   detailScreen.classList.toggle('hidden', name !== 'detail');
   roundAnalysisScreen.classList.toggle('hidden', name !== 'round-analysis');
@@ -757,6 +761,21 @@ function updateRecords() {
   } else {
     el.classList.add('hidden');
   }
+}
+
+// ── 규칙 ──
+
+function showRules() {
+  showScreen('rules');
+  const tabs = document.querySelectorAll('.rules-tab');
+  tabs.forEach(tab => {
+    tab.onclick = () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      $('rules-std').classList.toggle('hidden', tab.dataset.tab !== 'std');
+      $('rules-tk').classList.toggle('hidden', tab.dataset.tab !== 'tk');
+    };
+  });
 }
 
 // ── 히스토리 ──
