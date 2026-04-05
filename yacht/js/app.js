@@ -35,6 +35,21 @@ function specialPipHTML(val) {
 // 이전 호환용 (텍스트 전용 컨텍스트)
 const DICE_DOTS = ['', '\u2680', '\u2681', '\u2682', '\u2683', '\u2684', '\u2685'];
 
+// ── 툴팁 텍스트 ──
+
+const TIP_PLAY_SCORE = 'EV(기대값)는 특정 선택을 했을 때 게임 끝까지 최적으로 플레이하면 얻을 수 있는 평균 점수입니다. EV 손실은 플레이어의 선택과 최적 선택 사이의 EV 차이 합계입니다. 플레이 점수는 EV 손실이 적을수록 100에 가까워집니다.';
+
+const TIP_MISTAKE = '#순위는 플레이어의 선택이 가능한 모든 선택지 중 몇 번째로 좋은 선택이었는지를 나타냅니다. EV 차이는 최적 선택 대비 손해본 기대 점수입니다.';
+
+const TIP_ALL_ACTIONS = '현재 주사위 상태에서 가능한 모든 선택지를 EV(기대값) 순으로 정렬한 것입니다. 숫자가 높을수록 게임 끝까지의 기대 점수가 높은 선택입니다. 1위와의 EV 차이가 작을수록 좋은 선택입니다.';
+
+const TIP_TARGET_PROB = '이 시점에서 최적으로 플레이할 경우 최종적으로 배정하게 될 족보의 확률 분포입니다.';
+const TIP_TARGET_SCORE = '해당 족보에 배정했을 때의 기대 점수입니다. (해당 족보로 배정될 때의 조건부 평균)';
+
+function helpSpan(tip) {
+  return `<span class="has-tooltip ra-help-wrap"><span class="ra-help">?</span><span class="tooltip tooltip-wide">${tip}</span></span>`;
+}
+
 // 족보 한줄 설명 (tooltip)
 const CAT_TIPS = {
   standard: [
@@ -727,11 +742,12 @@ function renderAnalysis() {
   const m = Game.MODE[game.mode];
   const catNames = m.scoring.CATEGORY_NAMES;
 
-  let html = `<div class="play-score">플레이 점수: <strong>${playScore}/100</strong> (EV 손실: ${evLoss})</div>`;
+  let html = `<div class="play-score">플레이 점수: <strong>${playScore}/100</strong> (EV 손실: ${evLoss}) ${helpSpan(TIP_PLAY_SCORE)}</div>`;
 
   if (mistakes.length === 0) {
     html += '<div class="perfect">완벽한 플레이!</div>';
   } else {
+    html += `<div class="mistakes-header">주요 실수 ${helpSpan(TIP_MISTAKE)}</div>`;
     html += '<div class="mistakes">';
     const shown = mistakes.slice(0, 8);
     for (const h of shown) {
@@ -878,8 +894,9 @@ function showDetail(gameId) {
   // 분석 요약
   const analysisEl = $('detail-analysis');
   if (record.playScore != null) {
-    let html = `<div class="play-score">플레이 점수: <strong>${record.playScore}/100</strong> (EV 손실: ${record.evLoss.toFixed(1)})</div>`;
+    let html = `<div class="play-score">플레이 점수: <strong>${record.playScore}/100</strong> (EV 손실: ${record.evLoss.toFixed(1)}) ${helpSpan(TIP_PLAY_SCORE)}</div>`;
     if (record.mistakes && record.mistakes.length > 0) {
+      html += `<div class="mistakes-header">주요 실수 ${helpSpan(TIP_MISTAKE)}</div>`;
       html += '<div class="mistakes">';
       for (const h of record.mistakes.slice(0, 5)) {
         const dice = h.dice.map(d => DICE_DOTS[d]).join('');
@@ -995,7 +1012,7 @@ function renderRoundAnalysis(record, roundNum) {
     html += `<div class="ra-dice">${diceHtml}${spHtml}</div>`;
 
     // 전체 행동 리스트
-    html += `<div class="ra-top-header">전체 선택지 (${allActions.length}) <span class="ra-help" title="Placeholder">?</span></div>`;
+    html += `<div class="ra-top-header">전체 선택지 (${allActions.length}) ${helpSpan(TIP_ALL_ACTIONS)}</div>`;
     html += `<div class="ra-actions">`;
 
     for (let i = 0; i < allActions.length; i++) {
@@ -1072,14 +1089,14 @@ function renderTargetDist(dist, scoreAccum, catNames) {
   html += '<div class="ra-target-header">목표 분포 (최적 플레이)</div>';
 
   // 확률 top5
-  html += '<div class="ra-target-row"><span class="ra-target-label">확률순</span><span class="ra-target-items">';
+  html += `<div class="ra-target-row"><span class="ra-target-label">확률순 ${helpSpan(TIP_TARGET_PROB)}</span><span class="ra-target-items">`;
   for (const e of probEntries.slice(0, 5)) {
     html += `<span class="ra-target-item">${e.name} <strong>${(e.val * 100).toFixed(0)}%</strong></span>`;
   }
   html += '</span></div>';
 
   // 점수 top5
-  html += '<div class="ra-target-row"><span class="ra-target-label">점수순</span><span class="ra-target-items">';
+  html += `<div class="ra-target-row"><span class="ra-target-label">점수순 ${helpSpan(TIP_TARGET_SCORE)}</span><span class="ra-target-items">`;
   for (const e of scoreEntries.slice(0, 5)) {
     html += `<span class="ra-target-item">${e.name} <strong>${e.val.toFixed(1)}</strong></span>`;
   }

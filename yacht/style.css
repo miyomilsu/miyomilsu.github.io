@@ -579,6 +579,28 @@ body {
   display: block;
 }
 
+.tooltip-wide {
+  white-space: normal;
+  width: 280px;
+  line-height: 1.5;
+}
+
+.ra-help-wrap {
+  display: inline-flex;
+  cursor: help;
+}
+
+.ra-help-wrap .tooltip {
+  left: auto;
+  right: 0;
+  bottom: 100%;
+}
+
+.ra-help-wrap .tooltip::after {
+  left: auto;
+  right: 12px;
+}
+
 /* 스코어보드 행 — td가 tooltip 컨테이너 */
 .scoreboard tr.has-tooltip td:first-child {
   position: relative;
@@ -667,6 +689,16 @@ body {
   text-align: center;
   color: var(--green);
   font-weight: 600;
+}
+
+.mistakes-header {
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .mistakes {
