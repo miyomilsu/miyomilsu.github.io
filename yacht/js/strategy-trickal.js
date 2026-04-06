@@ -356,43 +356,65 @@ export function computeRerollLuck(mask, upper, rerolls, diceIdx, normalKeepMask,
     if (nkm !== normalKeepMask) continue;
 
     let mean = 0, meanSq = 0;
+    const actualEV = prevDP[actualResultIdx];
+
     if (keepSpecial) {
-      // 에르핀 고정, 일반만 리롤
+      let pBelow = 0, pEqual = 0;
       for (let t = 0; t < indices.length; t++) {
         const ev = prevDP[indices[t] * SPECIAL_COUNT + si];
         mean += probs[t] * ev;
         meanSq += probs[t] * ev * ev;
+        if (ev < actualEV - 1e-9) pBelow += probs[t];
+        else if (ev < actualEV + 1e-9) pEqual += probs[t];
       }
+      const variance = meanSq - mean * mean;
+      const sigma = Math.sqrt(variance);
+      const zSigma = sigma > 1e-9 ? (actualEV - mean) / sigma : 0;
+      const percentile = pBelow + pEqual * 0.5;
+      return { expectedEV: mean, variance, actualEV, luck: actualEV - mean, zSigma, percentile };
     } else {
-      // 에르핀도 리롤 → 일반 전이 × 에르핀 균등
+      // 에르핀도 리롤: 결합 분포에서 percentile 계산
+      let pBelow = 0, pEqual = 0;
       for (let t = 0; t < indices.length; t++) {
         mean += probs[t] * avgPrev[indices[t]];
         meanSq += probs[t] * avgPrevSq[indices[t]];
+        // 개별 에르핀 결과별로 비교
+        for (let ssi = 0; ssi < SPECIAL_COUNT; ssi++) {
+          const ev = prevDP[indices[t] * SPECIAL_COUNT + ssi];
+          const p = probs[t] / FACES;
+          if (ev < actualEV - 1e-9) pBelow += p;
+          else if (ev < actualEV + 1e-9) pEqual += p;
+        }
       }
+      const variance = meanSq - mean * mean;
+      const sigma = Math.sqrt(variance);
+      const zSigma = sigma > 1e-9 ? (actualEV - mean) / sigma : 0;
+      const percentile = pBelow + pEqual * 0.5;
+      return { expectedEV: mean, variance, actualEV, luck: actualEV - mean, zSigma, percentile };
     }
-    const variance = meanSq - mean * mean;
-    const actualEV = prevDP[actualResultIdx];
-    return { expectedEV: mean, variance, actualEV, luck: actualEV - mean };
   }
   return null;
 }
 
-/**
- * 첫 굴림(라운드 시작)의 운 계산
- */
 export function computeInitialRollLuck(mask, upper, actualDiceIdx) {
   const { dp } = computeTurnDP(mask, upper);
   const dp2 = dp[2];
   let mean = 0, meanSq = 0;
+  const actualEV = dp2[actualDiceIdx];
+  let pBelow = 0, pEqual = 0;
   for (let i = 0; i < DICE_STATE_COUNT; i++) {
     const ev = dp2[i];
     const p = DICE_STATE_PROBS[i];
     mean += p * ev;
     meanSq += p * ev * ev;
+    if (ev < actualEV - 1e-9) pBelow += p;
+    else if (ev < actualEV + 1e-9) pEqual += p;
   }
   const variance = meanSq - mean * mean;
-  const actualEV = dp2[actualDiceIdx];
-  return { expectedEV: mean, variance, actualEV, luck: actualEV - mean };
+  const sigma = Math.sqrt(variance);
+  const zSigma = sigma > 1e-9 ? (actualEV - mean) / sigma : 0;
+  const percentile = pBelow + pEqual * 0.5;
+  return { expectedEV: mean, variance, actualEV, luck: actualEV - mean, zSigma, percentile };
 }
 
 export { NUM_CATEGORIES, SPECIAL_COUNT, NORMAL_COUNT, DICE_STATE_COUNT };

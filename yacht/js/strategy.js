@@ -244,33 +244,41 @@ export function computeRerollLuck(mask, upper, rerolls, diceIdx, keepMask, actua
   for (const { keepMask: km, indices, probs } of transitions[diceIdx]) {
     if (km !== keepMask) continue;
     let mean = 0, meanSq = 0;
+    const actualEV = prevDP[actualResultIdx];
+    let pBelow = 0, pEqual = 0;
     for (let t = 0; t < indices.length; t++) {
       const ev = prevDP[indices[t]];
       mean += probs[t] * ev;
       meanSq += probs[t] * ev * ev;
+      if (ev < actualEV - 1e-9) pBelow += probs[t];
+      else if (ev < actualEV + 1e-9) pEqual += probs[t];
     }
     const variance = meanSq - mean * mean;
-    const actualEV = prevDP[actualResultIdx];
-    return { expectedEV: mean, variance, actualEV, luck: actualEV - mean };
+    const sigma = Math.sqrt(variance);
+    const zSigma = sigma > 1e-9 ? (actualEV - mean) / sigma : 0;
+    const percentile = pBelow + pEqual * 0.5; // 동일 EV는 절반으로
+    return { expectedEV: mean, variance, actualEV, luck: actualEV - mean, zSigma, percentile };
   }
   return null;
 }
 
-/**
- * 첫 굴림(라운드 시작)의 운 계산
- * @returns { expectedEV, variance, actualEV, luck }
- */
 export function computeInitialRollLuck(mask, upper, actualDiceIdx) {
   const { dp } = computeTurnDP(mask, upper);
   const dp2 = dp[2];
   let mean = 0, meanSq = 0;
+  const actualEV = dp2[actualDiceIdx];
+  let pBelow = 0, pEqual = 0;
   for (let i = 0; i < COMBO_COUNT; i++) {
     const ev = dp2[i];
     const p = COMBO_PROBS[i];
     mean += p * ev;
     meanSq += p * ev * ev;
+    if (ev < actualEV - 1e-9) pBelow += p;
+    else if (ev < actualEV + 1e-9) pEqual += p;
   }
   const variance = meanSq - mean * mean;
-  const actualEV = dp2[actualDiceIdx];
-  return { expectedEV: mean, variance, actualEV, luck: actualEV - mean };
+  const sigma = Math.sqrt(variance);
+  const zSigma = sigma > 1e-9 ? (actualEV - mean) / sigma : 0;
+  const percentile = pBelow + pEqual * 0.5;
+  return { expectedEV: mean, variance, actualEV, luck: actualEV - mean, zSigma, percentile };
 }

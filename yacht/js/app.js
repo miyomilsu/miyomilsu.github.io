@@ -1020,10 +1020,48 @@ function renderRoundAnalysis(record, roundNum) {
     decisionPoints.push({ dice: [...dice], specialDie, rerolls: rr.rerolls });
   }
 
+  // 이전 상태 추적 (리롤 운 계산용)
+  let prevDice = null, prevSpecial = null;
+
   for (let dpIdx = 0; dpIdx < decisionPoints.length; dpIdx++) {
     const pt = decisionPoints[dpIdx];
     const diceIdx = Game.computeDiceIdx(pt.dice, pt.specialDie, record.mode);
     const r = pt.rerolls;
+
+    // 이 주사위 결과의 운 계산
+    let rollLuck = null;
+    if (dpIdx === 0) {
+      // 첫 굴림
+      rollLuck = strat.computeInitialRollLuck(pMask, pUpper, diceIdx);
+    } else {
+      // 리롤 결과 — 이전 상태에서 플레이어의 킵 선택 기반
+      const rr = rd.rerolls[dpIdx - 1];
+      const rerolled = new Set(rr.selected);
+      const prevIdx = Game.computeDiceIdx(prevDice, prevSpecial, record.mode);
+      if (m.hasSpecial) {
+        const tk = m.diceTk;
+        const sorted = prevDice.slice().sort((a, b) => a - b);
+        const normalKept = [];
+        for (let i = 0; i < prevDice.length; i++) {
+          if (!rerolled.has(i)) normalKept.push(prevDice[i]);
+        }
+        normalKept.sort((a, b) => a - b);
+        const nkm = tk.keepToMask(sorted, normalKept);
+        const ks = !rerolled.has(prevDice.length);
+        rollLuck = strat.computeRerollLuck(pMask, pUpper, r + 1, prevIdx, nkm, ks, diceIdx);
+      } else {
+        const sorted = prevDice.slice().sort((a, b) => a - b);
+        const keptValues = [];
+        for (let i = 0; i < 5; i++) {
+          if (!rerolled.has(i)) keptValues.push(prevDice[i]);
+        }
+        keptValues.sort((a, b) => a - b);
+        const km = m.dice.keepToMask(sorted, keptValues);
+        rollLuck = strat.computeRerollLuck(pMask, pUpper, r + 1, prevIdx, km, diceIdx);
+      }
+    }
+    prevDice = pt.dice;
+    prevSpecial = pt.specialDie;
 
     // 전체 행동 목록
     const allActions = strat.enumerateActions(pMask, pUpper, r, diceIdx);
@@ -1055,6 +1093,15 @@ function renderRoundAnalysis(record, roundNum) {
 
     let html = `<div class="ra-panel-header">리롤 ${r}</div>`;
     html += `<div class="ra-dice">${diceHtml}${spHtml}</div>`;
+
+    // 이 굴림의 운
+    if (rollLuck) {
+      const luckSign = rollLuck.luck >= 0 ? '+' : '';
+      const luckCls = rollLuck.luck >= 0 ? 'luck-good' : 'luck-bad';
+      const pctStr = `상위 ${((1 - rollLuck.percentile) * 100).toFixed(0)}%`;
+      const sigmaStr = `${rollLuck.zSigma >= 0 ? '+' : ''}${rollLuck.zSigma.toFixed(1)}\u03C3`;
+      html += `<div class="ra-roll-luck ${luckCls}">${dpIdx === 0 ? '첫 굴림' : '리롤 결과'}: ${luckSign}${rollLuck.luck.toFixed(1)}점 (${pctStr}, ${sigmaStr})</div>`;
+    }
 
     // 전체 행동 리스트
     html += `<div class="ra-top-header">전체 선택지 (${allActions.length}) ${helpSpan(TIP_ALL_ACTIONS)}</div>`;
