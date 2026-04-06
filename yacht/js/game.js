@@ -324,10 +324,9 @@ export function getAnalysis(game) {
 
 function generateGameId(mode) {
   const prefix = mode === 'trickal' ? 'tk' : 'std';
-  const d = new Date();
-  const date = d.toISOString().slice(0, 10).replace(/-/g, '');
+  const ts = Date.now().toString(36);
   const rand = Math.random().toString(36).slice(2, 6);
-  return `${prefix}_${date}_${rand}`;
+  return `${prefix}_${ts}_${rand}`;
 }
 
 export async function saveGameHistory(game, luckData) {
