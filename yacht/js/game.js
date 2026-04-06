@@ -38,7 +38,17 @@ function loadJSON(key) {
   catch { return {}; }
 }
 function saveJSON(key, data) {
-  localStorage.setItem(key, JSON.stringify(data));
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    if (e.name === 'QuotaExceededError' && key === HISTORY_KEY) {
+      // 오래된 게임부터 삭제 후 재시도
+      const entries = Object.entries(data).sort(([,a],[,b]) => b.date.localeCompare(a.date));
+      const trimmed = Object.fromEntries(entries.slice(0, Math.floor(entries.length * 0.8)));
+      try { localStorage.setItem(key, JSON.stringify(trimmed)); } catch {}
+    }
+    console.warn('localStorage save failed:', e.name);
+  }
 }
 
 const RECORDS_KEY = 'yacht-records';
