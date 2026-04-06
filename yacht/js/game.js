@@ -3,6 +3,7 @@
  */
 
 import { comboToIndex } from './dice.js';
+import * as db from './db.js';
 import * as scoringStd from './scoring.js';
 import * as scoringTk from './scoring-trickal.js';
 import * as strategyStd from './strategy.js';
@@ -38,21 +39,11 @@ function loadJSON(key) {
   catch { return {}; }
 }
 function saveJSON(key, data) {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {
-    if (e.name === 'QuotaExceededError' && key === HISTORY_KEY) {
-      // 오래된 게임부터 삭제 후 재시도
-      const entries = Object.entries(data).sort(([,a],[,b]) => b.date.localeCompare(a.date));
-      const trimmed = Object.fromEntries(entries.slice(0, Math.floor(entries.length * 0.8)));
-      try { localStorage.setItem(key, JSON.stringify(trimmed)); } catch {}
-    }
-    console.warn('localStorage save failed:', e.name);
-  }
+  try { localStorage.setItem(key, JSON.stringify(data)); }
+  catch (e) { console.warn('localStorage save failed:', e.name); }
 }
 
 const RECORDS_KEY = 'yacht-records';
-const HISTORY_KEY = 'yacht-history';
 
 // ── 전적 ──
 
@@ -339,13 +330,13 @@ function generateGameId(mode) {
   return `${prefix}_${date}_${rand}`;
 }
 
-export function saveGameHistory(game, luckData) {
-  const all = loadJSON(HISTORY_KEY);
+export async function saveGameHistory(game, luckData) {
   const { pT, aT } = calcTotal(game);
   const m = M(game);
   const analysis = getAnalysis(game);
   const gameId = generateGameId(game.mode);
-  all[gameId] = {
+  await db.putGame({
+    id: gameId,
     date: new Date().toISOString(),
     mode: game.mode,
     playerScores: [...game.pScores],
@@ -359,15 +350,12 @@ export function saveGameHistory(game, luckData) {
     evLoss: parseFloat(analysis.evLoss),
     mistakes: analysis.mistakes,
     luck: luckData ? { total: luckData.totalLuck, sigma: luckData.sigma } : null,
-  };
-  saveJSON(HISTORY_KEY, all);
+  });
   return gameId;
 }
 
-export function getGameRecord(gameId) {
-  const all = loadJSON(HISTORY_KEY);
-  const g = all[gameId];
-  return g ? { id: gameId, ...g } : null;
+export async function getGameRecord(gameId) {
+  return db.getGame(gameId);
 }
 
 /** moves 배열에서 라운드별 데이터 추출 */
@@ -486,18 +474,15 @@ export function computeGameLuck(record) {
   return { totalLuck, totalVariance, sigma: Math.sqrt(totalVariance), rolls };
 }
 
-/** 기존 히스토리에 운 데이터 업데이트 */
-export function updateGameLuck(gameId, luckData) {
-  const all = loadJSON(HISTORY_KEY);
-  if (all[gameId]) {
-    all[gameId].luck = { total: luckData.totalLuck, sigma: luckData.sigma };
-    saveJSON(HISTORY_KEY, all);
-  }
+export async function updateGameLuck(gameId, luckData) {
+  await db.updateGame(gameId, { luck: { total: luckData.totalLuck, sigma: luckData.sigma } });
 }
 
-export function getGameHistoryList() {
-  const all = loadJSON(HISTORY_KEY);
-  return Object.entries(all)
-    .map(([id, g]) => ({ id, ...g }))
-    .sort((a, b) => b.date.localeCompare(a.date));
+export async function getGameHistoryList() {
+  return db.getAllGames();
+}
+
+/** IndexedDB 초기화 + localStorage 마이그레이션 */
+export async function initDB() {
+  await db.migrateFromLocalStorage();
 }

@@ -107,6 +107,7 @@ export async function init() {
   $('btn-anim-player').addEventListener('click', () => toggleAnim('player'));
   $('btn-anim-ai').addEventListener('click', () => toggleAnim('ai'));
   updateAnimBtns();
+  await Game.initDB();
   updateRecords();
 }
 
@@ -692,7 +693,7 @@ function animateAITurn(aiLog, callback) {
 
 // ── 게임 종료 ──
 
-function showGameOver() {
+async function showGameOver() {
   const { pT, aT } = Game.calcTotal(game);
   const record = Game.recordResult(pT, aT);
 
@@ -711,7 +712,7 @@ function showGameOver() {
   let luckData = null;
   try { luckData = Game.computeGameLuck(tempRecord); } catch(e) { console.warn('luck calc failed', e); }
 
-  Game.saveGameHistory(game, luckData);
+  await Game.saveGameHistory(game, luckData);
 
   showScreen('over');
 
@@ -840,9 +841,9 @@ function showRules() {
 
 // ── 히스토리 ──
 
-function showHistory() {
+async function showHistory() {
   showScreen('history');
-  const list = Game.getGameHistoryList();
+  const list = await Game.getGameHistoryList();
   const container = $('history-list');
   container.innerHTML = '';
 
@@ -881,8 +882,8 @@ function showHistory() {
 let currentRecord = null;
 let currentRoundNum = 1;
 
-function showDetail(gameId) {
-  const record = Game.getGameRecord(gameId);
+async function showDetail(gameId) {
+  const record = await Game.getGameRecord(gameId);
   if (!record) return;
   currentRecord = record;
 
@@ -950,7 +951,7 @@ function showDetail(gameId) {
         await Game.MODE[record.mode].strategy.load();
         const luckData = Game.computeGameLuck(record);
         // localStorage에 저장
-        Game.updateGameLuck(record.id, luckData);
+        await Game.updateGameLuck(record.id, luckData);
         record.luck = { total: luckData.totalLuck, sigma: luckData.sigma };
         // 다시 렌더링
         showDetail(record.id);
