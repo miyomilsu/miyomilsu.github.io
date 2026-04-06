@@ -350,10 +350,7 @@ export function saveGameHistory(game, luckData) {
     mistakes: analysis.mistakes,
     luck: luckData ? { total: luckData.totalLuck, sigma: luckData.sigma } : null,
   };
-  // 최근 30개만 유지 (상세 데이터가 크므로)
-  const entries = Object.entries(all).sort(([,a],[,b]) => b.date.localeCompare(a.date));
-  const trimmed = Object.fromEntries(entries.slice(0, 30));
-  saveJSON(HISTORY_KEY, trimmed);
+  saveJSON(HISTORY_KEY, all);
   return gameId;
 }
 
