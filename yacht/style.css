@@ -698,6 +698,20 @@ body {
 .luck-good { color: var(--green); }
 .luck-bad { color: var(--red); }
 
+.calc-luck-btn {
+  background: var(--surface2);
+  border: 1px solid var(--text-dim);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.calc-luck-btn:hover { opacity: 0.8; }
+.calc-luck-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .perfect {
   text-align: center;
   color: var(--green);

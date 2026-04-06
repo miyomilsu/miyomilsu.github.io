@@ -479,6 +479,15 @@ export function computeGameLuck(record) {
   return { totalLuck, totalVariance, sigma: Math.sqrt(totalVariance), rolls };
 }
 
+/** 기존 히스토리에 운 데이터 업데이트 */
+export function updateGameLuck(gameId, luckData) {
+  const all = loadJSON(HISTORY_KEY);
+  if (all[gameId]) {
+    all[gameId].luck = { total: luckData.totalLuck, sigma: luckData.sigma };
+    saveJSON(HISTORY_KEY, all);
+  }
+}
+
 export function getGameHistoryList() {
   const all = loadJSON(HISTORY_KEY);
   return Object.entries(all)

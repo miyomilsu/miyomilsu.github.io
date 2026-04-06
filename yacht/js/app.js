@@ -922,6 +922,8 @@ function showDetail(gameId) {
       const luckSign = record.luck.total >= 0 ? '+' : '';
       const luckClass = record.luck.total >= 0 ? 'luck-good' : 'luck-bad';
       html += `<div class="luck-score ${luckClass}">주사위 운: <strong>${luckSign}${record.luck.total.toFixed(1)}</strong>점 (\u00B1${record.luck.sigma.toFixed(1)}) ${helpSpan(TIP_LUCK)}</div>`;
+    } else if (record.moves && record.moves.length > 0) {
+      html += `<div class="luck-score"><button id="btn-calc-luck" class="calc-luck-btn">주사위 운 계산</button></div>`;
     }
     if (record.mistakes && record.mistakes.length > 0) {
       html += `<div class="mistakes-header">주요 실수 ${helpSpan(TIP_MISTAKE)}</div>`;
@@ -939,6 +941,21 @@ function showDetail(gameId) {
       html += '<div class="perfect">완벽한 플레이!</div>';
     }
     analysisEl.innerHTML = html;
+    // 운 계산 버튼 바인딩
+    const calcBtn = $('btn-calc-luck');
+    if (calcBtn) {
+      calcBtn.addEventListener('click', async () => {
+        calcBtn.textContent = '계산 중...';
+        calcBtn.disabled = true;
+        await Game.MODE[record.mode].strategy.load();
+        const luckData = Game.computeGameLuck(record);
+        // localStorage에 저장
+        Game.updateGameLuck(record.id, luckData);
+        record.luck = { total: luckData.totalLuck, sigma: luckData.sigma };
+        // 다시 렌더링
+        showDetail(record.id);
+      });
+    }
   } else {
     analysisEl.innerHTML = '';
   }
