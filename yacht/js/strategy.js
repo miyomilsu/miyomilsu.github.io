@@ -3,7 +3,7 @@
  * turnStartEV를 fetch로 로드, 나머지는 on-the-fly 계산
  */
 
-import { COMBOS, COMBO_COUNT, precomputeTransitions, keepToMask } from './dice.js';
+import { COMBOS, COMBO_COUNT, COMBO_PROBS, precomputeTransitions, keepToMask } from './dice.js';
 import { scoreCategory, NUM_CATEGORIES, UPPER_BONUS_THRESHOLD } from './scoring.js';
 
 const NUM_UPPER_STATES = 64;
@@ -229,4 +229,48 @@ export function traceTargetDist(mask, upper, rerolls, diceIdx) {
 
   trace(rerolls, diceIdx, 1.0);
   return { dist, scoreAccum };
+}
+
+/**
+ * 리롤 결과의 운 계산
+ * @param keepMask 킵한 주사위 비트마스크 (transitions 키)
+ * @param actualResultIdx 리롤 후 실제 결과 diceIdx
+ * @returns { expectedEV, variance, actualEV, luck }
+ */
+export function computeRerollLuck(mask, upper, rerolls, diceIdx, keepMask, actualResultIdx) {
+  const { dp } = computeTurnDP(mask, upper);
+  const prevDP = dp[rerolls - 1];
+
+  for (const { keepMask: km, indices, probs } of transitions[diceIdx]) {
+    if (km !== keepMask) continue;
+    let mean = 0, meanSq = 0;
+    for (let t = 0; t < indices.length; t++) {
+      const ev = prevDP[indices[t]];
+      mean += probs[t] * ev;
+      meanSq += probs[t] * ev * ev;
+    }
+    const variance = meanSq - mean * mean;
+    const actualEV = prevDP[actualResultIdx];
+    return { expectedEV: mean, variance, actualEV, luck: actualEV - mean };
+  }
+  return null;
+}
+
+/**
+ * 첫 굴림(라운드 시작)의 운 계산
+ * @returns { expectedEV, variance, actualEV, luck }
+ */
+export function computeInitialRollLuck(mask, upper, actualDiceIdx) {
+  const { dp } = computeTurnDP(mask, upper);
+  const dp2 = dp[2];
+  let mean = 0, meanSq = 0;
+  for (let i = 0; i < COMBO_COUNT; i++) {
+    const ev = dp2[i];
+    const p = COMBO_PROBS[i];
+    mean += p * ev;
+    meanSq += p * ev * ev;
+  }
+  const variance = meanSq - mean * mean;
+  const actualEV = dp2[actualDiceIdx];
+  return { expectedEV: mean, variance, actualEV, luck: actualEV - mean };
 }

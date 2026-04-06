@@ -4,7 +4,7 @@
 
 import {
   FACES, NUM_NORMAL, SPECIAL_COUNT,
-  NORMAL_COMBOS, NORMAL_COUNT, DICE_STATE_COUNT,
+  NORMAL_COMBOS, NORMAL_COUNT, DICE_STATE_COUNT, DICE_STATE_PROBS,
   diceStateIdx, idxToSpecial,
   precomputeNormalTransitions,
 } from './dice-trickal.js';
@@ -324,6 +324,75 @@ export function traceTargetDist(mask, upper, rerolls, diceIdx) {
 
   trace(rerolls, diceIdx, 1.0);
   return { dist, scoreAccum };
+}
+
+/**
+ * 리롤 결과의 운 계산
+ * @param normalKeepMask 일반 주사위 킵 비트마스크
+ * @param keepSpecial 에르핀 킵 여부
+ * @param actualResultIdx 리롤 후 실제 결과 diceStateIdx
+ */
+export function computeRerollLuck(mask, upper, rerolls, diceIdx, normalKeepMask, keepSpecial, actualResultIdx) {
+  const { dp } = computeTurnDP(mask, upper);
+  const prevDP = dp[rerolls - 1];
+  const ni = Math.floor(diceIdx / SPECIAL_COUNT);
+  const si = diceIdx % SPECIAL_COUNT;
+
+  // avgPrev: 에르핀 리롤 시 사용할 평균 (에르핀 전 값에 대해 평균)
+  const avgPrev = new Float64Array(NORMAL_COUNT);
+  const avgPrevSq = new Float64Array(NORMAL_COUNT);
+  for (let nni = 0; nni < NORMAL_COUNT; nni++) {
+    let s = 0, sq = 0;
+    for (let ssi = 0; ssi < SPECIAL_COUNT; ssi++) {
+      const ev = prevDP[nni * SPECIAL_COUNT + ssi];
+      s += ev;
+      sq += ev * ev;
+    }
+    avgPrev[nni] = s / FACES;
+    avgPrevSq[nni] = sq / FACES;
+  }
+
+  for (const { normalKeepMask: nkm, indices, probs } of normalTrans[ni]) {
+    if (nkm !== normalKeepMask) continue;
+
+    let mean = 0, meanSq = 0;
+    if (keepSpecial) {
+      // 에르핀 고정, 일반만 리롤
+      for (let t = 0; t < indices.length; t++) {
+        const ev = prevDP[indices[t] * SPECIAL_COUNT + si];
+        mean += probs[t] * ev;
+        meanSq += probs[t] * ev * ev;
+      }
+    } else {
+      // 에르핀도 리롤 → 일반 전이 × 에르핀 균등
+      for (let t = 0; t < indices.length; t++) {
+        mean += probs[t] * avgPrev[indices[t]];
+        meanSq += probs[t] * avgPrevSq[indices[t]];
+      }
+    }
+    const variance = meanSq - mean * mean;
+    const actualEV = prevDP[actualResultIdx];
+    return { expectedEV: mean, variance, actualEV, luck: actualEV - mean };
+  }
+  return null;
+}
+
+/**
+ * 첫 굴림(라운드 시작)의 운 계산
+ */
+export function computeInitialRollLuck(mask, upper, actualDiceIdx) {
+  const { dp } = computeTurnDP(mask, upper);
+  const dp2 = dp[2];
+  let mean = 0, meanSq = 0;
+  for (let i = 0; i < DICE_STATE_COUNT; i++) {
+    const ev = dp2[i];
+    const p = DICE_STATE_PROBS[i];
+    mean += p * ev;
+    meanSq += p * ev * ev;
+  }
+  const variance = meanSq - mean * mean;
+  const actualEV = dp2[actualDiceIdx];
+  return { expectedEV: mean, variance, actualEV, luck: actualEV - mean };
 }
 
 export { NUM_CATEGORIES, SPECIAL_COUNT, NORMAL_COUNT, DICE_STATE_COUNT };

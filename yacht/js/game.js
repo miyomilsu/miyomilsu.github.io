@@ -329,7 +329,7 @@ function generateGameId(mode) {
   return `${prefix}_${date}_${rand}`;
 }
 
-export function saveGameHistory(game) {
+export function saveGameHistory(game, luckData) {
   const all = loadJSON(HISTORY_KEY);
   const { pT, aT } = calcTotal(game);
   const m = M(game);
@@ -348,6 +348,7 @@ export function saveGameHistory(game) {
     playScore: analysis.playScore,
     evLoss: parseFloat(analysis.evLoss),
     mistakes: analysis.mistakes,
+    luck: luckData ? { total: luckData.totalLuck, sigma: luckData.sigma } : null,
   };
   // 최근 30개만 유지 (상세 데이터가 크므로)
   const entries = Object.entries(all).sort(([,a],[,b]) => b.date.localeCompare(a.date));
@@ -407,6 +408,75 @@ export function computeDiceIdx(dice, specialDie, mode) {
   }
   const sorted = dice.slice().sort((a, b) => a - b);
   return m.dice.comboToIndex(sorted);
+}
+
+/**
+ * 게임 전체의 운 계산
+ * @returns { totalLuck, totalVariance, sigma, rolls: [{round, type, luck, variance}] }
+ */
+export function computeGameLuck(record) {
+  const m = MODE[record.mode];
+  const strat = m.strategy;
+  const rounds = extractRounds(record);
+  const rolls = [];
+  let totalLuck = 0, totalVariance = 0;
+
+  for (const rd of rounds) {
+    const { pMask, pUpper } = replayState(record, rd.round);
+
+    // 첫 굴림
+    const initDiceIdx = computeDiceIdx(rd.roll.dice, rd.roll.specialDie, record.mode);
+    const initResult = strat.computeInitialRollLuck(pMask, pUpper, initDiceIdx);
+    if (initResult) {
+      rolls.push({ round: rd.round, type: 'roll', ...initResult });
+      totalLuck += initResult.luck;
+      totalVariance += initResult.variance;
+    }
+
+    // 리롤들
+    let curDice = rd.roll.dice;
+    let curSpecial = rd.roll.specialDie;
+    for (const rr of rd.rerolls) {
+      const beforeIdx = computeDiceIdx(curDice, curSpecial, record.mode);
+      const afterIdx = computeDiceIdx(rr.dice, rr.specialDie, record.mode);
+      const rerolled = new Set(rr.selected);
+      const r = rr.rerolls + 1; // rerolls BEFORE this reroll happened
+
+      let result;
+      if (m.hasSpecial) {
+        const tk = m.diceTk;
+        const sorted = curDice.slice().sort((a, b) => a - b);
+        const normalKept = [];
+        for (let i = 0; i < curDice.length; i++) {
+          if (!rerolled.has(i)) normalKept.push(curDice[i]);
+        }
+        normalKept.sort((a, b) => a - b);
+        const normalKeepMask = tk.keepToMask(sorted, normalKept);
+        const keepSpecial = !rerolled.has(curDice.length);
+        result = strat.computeRerollLuck(pMask, pUpper, r, beforeIdx, normalKeepMask, keepSpecial, afterIdx);
+      } else {
+        const sorted = curDice.slice().sort((a, b) => a - b);
+        const keptValues = [];
+        for (let i = 0; i < 5; i++) {
+          if (!rerolled.has(i)) keptValues.push(curDice[i]);
+        }
+        keptValues.sort((a, b) => a - b);
+        const keepMask = m.dice.keepToMask(sorted, keptValues);
+        result = strat.computeRerollLuck(pMask, pUpper, r, beforeIdx, keepMask, afterIdx);
+      }
+
+      if (result) {
+        rolls.push({ round: rd.round, type: 'reroll', ...result });
+        totalLuck += result.luck;
+        totalVariance += result.variance;
+      }
+
+      curDice = rr.dice;
+      curSpecial = rr.specialDie;
+    }
+  }
+
+  return { totalLuck, totalVariance, sigma: Math.sqrt(totalVariance), rolls };
 }
 
 export function getGameHistoryList() {

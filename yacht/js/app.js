@@ -695,7 +695,23 @@ function animateAITurn(aiLog, callback) {
 function showGameOver() {
   const { pT, aT } = Game.calcTotal(game);
   const record = Game.recordResult(pT, aT);
-  Game.saveGameHistory(game);
+
+  // 운 계산 (전략 엔진이 이미 로드되어 있음)
+  // 임시 record 형태로 만들어서 computeGameLuck 호출
+  const tempRecord = {
+    mode: game.mode,
+    moves: game.moves || [],
+    playerScores: [...game.pScores],
+    aiScores: [...game.aScores],
+    playerUpper: game.pUpper,
+    aiUpper: game.aUpper,
+    playerTotal: pT,
+    aiTotal: aT,
+  };
+  let luckData = null;
+  try { luckData = Game.computeGameLuck(tempRecord); } catch(e) { console.warn('luck calc failed', e); }
+
+  Game.saveGameHistory(game, luckData);
 
   showScreen('over');
 
@@ -712,7 +728,7 @@ function showGameOver() {
   renderFinalScoreboard();
 
   // 전략 분석
-  renderAnalysis();
+  renderAnalysis(luckData);
 }
 
 function renderFinalScoreboard() {
@@ -736,13 +752,21 @@ function renderFinalScoreboard() {
   addScoreRow(tbody, '합계', pT, aT, true);
 }
 
-function renderAnalysis() {
+const TIP_LUCK = '주사위 운은 각 굴림에서 실제 결과의 EV와 기대 EV의 차이를 합산한 것입니다. 양수면 평균보다 운이 좋았고, 음수면 나빴습니다. ±σ는 이 정도 편차가 일반적인 범위인지 가늠하는 기준입니다.';
+
+function renderAnalysis(luckData) {
   const container = $('analysis');
   const { playScore, evLoss, mistakes } = Game.getAnalysis(game);
   const m = Game.MODE[game.mode];
   const catNames = m.scoring.CATEGORY_NAMES;
 
   let html = `<div class="play-score">플레이 점수: <strong>${playScore}/100</strong> (EV 손실: ${evLoss}) ${helpSpan(TIP_PLAY_SCORE)}</div>`;
+
+  if (luckData) {
+    const luckSign = luckData.totalLuck >= 0 ? '+' : '';
+    const luckClass = luckData.totalLuck >= 0 ? 'luck-good' : 'luck-bad';
+    html += `<div class="luck-score ${luckClass}">주사위 운: <strong>${luckSign}${luckData.totalLuck.toFixed(1)}</strong>점 (\u00B1${luckData.sigma.toFixed(1)}) ${helpSpan(TIP_LUCK)}</div>`;
+  }
 
   if (mistakes.length === 0) {
     html += '<div class="perfect">완벽한 플레이!</div>';
@@ -894,6 +918,11 @@ function showDetail(gameId) {
   const analysisEl = $('detail-analysis');
   if (record.playScore != null) {
     let html = `<div class="play-score">플레이 점수: <strong>${record.playScore}/100</strong> (EV 손실: ${record.evLoss.toFixed(1)}) ${helpSpan(TIP_PLAY_SCORE)}</div>`;
+    if (record.luck) {
+      const luckSign = record.luck.total >= 0 ? '+' : '';
+      const luckClass = record.luck.total >= 0 ? 'luck-good' : 'luck-bad';
+      html += `<div class="luck-score ${luckClass}">주사위 운: <strong>${luckSign}${record.luck.total.toFixed(1)}</strong>점 (\u00B1${record.luck.sigma.toFixed(1)}) ${helpSpan(TIP_LUCK)}</div>`;
+    }
     if (record.mistakes && record.mistakes.length > 0) {
       html += `<div class="mistakes-header">주요 실수 ${helpSpan(TIP_MISTAKE)}</div>`;
       html += '<div class="mistakes">';

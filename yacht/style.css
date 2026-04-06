@@ -682,6 +682,22 @@ body {
   border-radius: 8px;
 }
 
+.luck-score {
+  text-align: center;
+  font-size: 1em;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.luck-good { color: var(--green); }
+.luck-bad { color: var(--red); }
+
 .perfect {
   text-align: center;
   color: var(--green);
