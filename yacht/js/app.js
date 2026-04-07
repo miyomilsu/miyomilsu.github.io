@@ -32,8 +32,18 @@ function specialPipHTML(val) {
   return pipHTML(val);
 }
 
-// 이전 호환용 (텍스트 전용 컨텍스트)
+// 이전 호환용 (AI 애니메이션 스크램블 텍스트)
 const DICE_DOTS = ['', '\u2680', '\u2681', '\u2682', '\u2683', '\u2684', '\u2685'];
+
+/** 인라인 미니 주사위 HTML (실수 목록 등에서 사용) */
+function miniDie(val) {
+  return `<span class="ai-die">${pipHTML(val)}</span>`;
+}
+function miniSp(special) {
+  if (special == null) return '';
+  if (special === 0) return '<span class="ai-die ai-wild"><img src="./img/erpin.png" alt="W"></span>';
+  return `<span class="ai-die ai-sp">${pipHTML(special)}</span>`;
+}
 
 // ── 툴팁 텍스트 ──
 
@@ -776,8 +786,8 @@ function renderAnalysis(luckData) {
     html += '<div class="mistakes">';
     const shown = mistakes.slice(0, 8);
     for (const h of shown) {
-      const dice = h.dice.map(d => DICE_DOTS[d]).join('');
-      const sp = h.special != null ? (h.special === 0 ? ' +W' : ' +' + DICE_DOTS[h.special]) : '';
+      const dice = h.dice.map(d => miniDie(d)).join('');
+      const sp = h.special != null ? miniSp(h.special) : '';
       const playerStr = fmtAction(h.player, h.playerScore, catNames, h.dice, h.special, m);
       const optStr = fmtAction(h.optimal, h.optimalScore, catNames, h.dice, h.special, m);
       html += `<div class="mistake">`;
@@ -799,11 +809,11 @@ function fmtAction(action, score, catNames, dice, special, m) {
   if (m.hasSpecial) {
     const nk = [];
     for (let i = 0; i < 4; i++) if (action.normalKeepMask & (1 << i)) nk.push(dice[i]);
-    const kept = nk.map(d => DICE_DOTS[d]).join('') || '';
-    const sp = action.keepSpecial ? (special === 0 ? 'W' : DICE_DOTS[special]) : '';
+    const kept = nk.map(d => miniDie(d)).join('') || '';
+    const sp = action.keepSpecial ? miniSp(special) : '';
     return `킵 ${kept}${sp || (kept ? '' : '없음')} 리롤`;
   }
-  const kept = action.keptValues.length ? action.keptValues.map(d => DICE_DOTS[d]).join('') : '없음';
+  const kept = action.keptValues.length ? action.keptValues.map(d => miniDie(d)).join('') : '없음';
   return `킵 ${kept} 리롤`;
 }
 
@@ -930,8 +940,8 @@ async function showDetail(gameId) {
       html += `<div class="mistakes-header">주요 실수 ${helpSpan(TIP_MISTAKE)}</div>`;
       html += '<div class="mistakes">';
       for (const h of record.mistakes.slice(0, 5)) {
-        const dice = h.dice.map(d => DICE_DOTS[d]).join('');
-        const sp = h.special != null ? (h.special === 0 ? ' +W' : ' +' + DICE_DOTS[h.special]) : '';
+        const dice = h.dice.map(d => miniDie(d)).join('');
+        const sp = h.special != null ? miniSp(h.special) : '';
         const playerStr = fmtAction(h.player, h.playerScore, catNames, h.dice, h.special, m);
         const optStr = fmtAction(h.optimal, h.optimalScore, catNames, h.dice, h.special, m);
         html += `<div class="mistake"><div class="mistake-header">R${h.round} ${dice}${sp} 리롤${h.rerolls} \u2014 <strong>#${h.rank}/${h.totalActions}</strong> (EV <strong>-${h.evDiff.toFixed(1)}</strong>)</div><div class="mistake-detail">${playerStr} \u2192 최적: ${optStr}</div></div>`;
