@@ -939,6 +939,36 @@ body {
 .ra-nav-btn:hover:not(:disabled) { border-color: var(--blue); }
 .ra-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
+.ra-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.ra-state-cat, .ra-state-bonus {
+  font-size: 0.7em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.ra-state-cat.filled {
+  background: rgba(52, 152, 219, 0.15);
+  color: var(--blue);
+}
+
+.ra-state-cat.empty {
+  background: var(--surface);
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+.ra-state-bonus {
+  background: rgba(243, 156, 18, 0.1);
+  color: var(--gold);
+}
+
 .ra-panels {
   display: flex;
   flex-direction: column;

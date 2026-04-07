@@ -1010,6 +1010,20 @@ function renderRoundAnalysis(record, roundNum) {
 
   const { pMask, pUpper } = Game.replayState(record, roundNum);
 
+  // 이 라운드 시작 시 족보 상태
+  const stateDiv = document.createElement('div');
+  stateDiv.className = 'ra-state';
+  let stateHtml = '';
+  for (let c = 0; c < m.numCat; c++) {
+    const filled = !!(pMask & (1 << c));
+    const score = filled ? record.playerScores[c] : null;
+    stateHtml += `<span class="ra-state-cat ${filled ? 'filled' : 'empty'}">${catNames[c]}${filled ? ' ' + score : ''}</span>`;
+  }
+  const bonusStr = pUpper >= m.upperThreshold ? `+${m.upperBonus}` : `${pUpper}/${m.upperThreshold}`;
+  stateHtml += `<span class="ra-state-bonus">bonus ${bonusStr}</span>`;
+  stateDiv.innerHTML = stateHtml;
+  container.appendChild(stateDiv);
+
   // 각 결정 포인트를 구성
   const decisionPoints = [];
   let dice = rd.roll.dice;
